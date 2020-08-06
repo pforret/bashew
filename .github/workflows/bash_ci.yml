@@ -1,0 +1,22 @@
+name: Bash CI
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: list scripts to be tested
+      run: ls ./*.sh
+
+    - name: Check for basic execution
+      run: ls ./*.sh | xargs bash
+
+    - name: Unit testing with bash_unit
+      run: tests/bash_unit tests/test_*

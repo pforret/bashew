@@ -1,0 +1,16 @@
+name: Shellcheck CI
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Check for code quality errors
+      run: ls ./*.sh | xargs shellcheck

@@ -1,0 +1,5 @@
+# test functions should start with test_
+test_bash_unit_works() {
+  assert_equals "Hello world!" "$(echo 'Hello world!')"
+}
+

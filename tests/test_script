@@ -1,0 +1,5 @@
+# test functions should start with test_
+test_should_show_option_verbose() {
+  assert_equals 1 $(../script.sh test | grep verbose | wc -l)
+}
+
