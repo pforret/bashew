@@ -1,23 +1,17 @@
 #!/usr/bin/env bash
 ### ==============================================================================
 ### SO HOW DO YOU PROCEED WITH YOUR SCRIPT?
-### 1. run "script.sh init"
-### 2. define the options/parameters and defaults you need in list_options() 
-### 3. define functions your might need by changing/adding to perform_action1()
-### 4. add binaries your script needs (e.g. ffmpeg) to verify_programs awk (...) wc
-### 5. implement the different actions you defined in 2. in main()
+### - define the options/parameters and defaults you need in list_options()
+### - define functions your might need by changing/adding to perform_action1()
+### - add binaries your script needs (e.g. ffmpeg) to verify_programs awk (...) wc
+### - implement the different actions you defined in 2. in main()
 ### ==============================================================================
 
-readonly PROGVERS="@version"
-readonly PROGAUTH="@email"
-# uncomment next line to have time prefix for every output line
-#prefix_fmt='+%H:%M:%S | '
-readonly prefix_fmt=""
+readonly prog_version="0.0.1"
+readonly prog_author="author@email.com"
 
-# runasroot = 0 :: don't check anything
-# runasroot = 1 :: script MUST run as root
-# runasroot = -1 :: script MAY NOT run as root
-runasroot=-1
+# runasroot: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
+readonly runasroot=-1
 
 list_options() {
   ### Change the next lines to reflect which flags/options/parameters you need
@@ -36,9 +30,8 @@ flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
 option|l|logd|folder for log files |log
 option|t|tmpd|folder for temp files|.tmp
-#you could also use /tmp/$PROGNAME as the default temp folder
-#option|u|user|USER to use|$USER
-#secret|p|pass|password to use
+option|u|user|USER to use|$USER
+secret|p|pass|password to use
 param|1|action|action to perform: init/list/test/...
 # there can only be 1 param|n and it should be the last
 param|1|output|output file
@@ -69,8 +62,8 @@ perform_action2(){
 #####################################################################
 
 main() {
-    log "Program: $PROGFNAME $PROGVERS ($PROGUUID)"
-    log "Updated: $PROGDATE"
+    log "Program: $prog_filename $prog_version"
+    log "Updated: $prog_modified"
     log "Run as : $USER@$HOSTNAME"
     # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
     verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
@@ -78,12 +71,8 @@ main() {
 
     action=$(lcase "$action")
     case $action in
-    init )
-        create_script_from_template
-        ;;
-
-    test )
-        run_tests
+    action1 )
+        #perform_action1 "$output" $inputs
         ;;
 
     action2 )
@@ -113,130 +102,71 @@ hash(){
 }
 
 # change program version to your own release logic
-readonly PROGNAME=$(basename "$0" .sh)
-readonly PROGFNAME=$(basename "$0")
-readonly PROGDIRREL=$(dirname "$0")
-if [[ -z "$PROGDIRREL" ]] ; then
+readonly prog_prefix=$(basename "$0" .sh)
+readonly prog_filename=$(basename "$0")
+prog_folder=$(dirname "$0")
+if [[ -z "$prog_folder" ]] ; then
 	# script called without  path specified ; must be in $PATH somewhere
-  readonly PROGFULLPATH=$(which "$0")
-  readonly PROGDIR=$(dirname "$PROGFULLPATH")
+  readonly prog_fullpath=$(which "$0")
+  prog_folder=$(dirname "$prog_fullpath")
 else
-  readonly PROGDIR=$(cd "$PROGDIRREL" && pwd)
-  readonly PROGFULLPATH="$PROGDIR/$PROGFNAME"
+  prog_folder=$(cd "$prog_folder" && pwd)
+  readonly prog_fullpath="$prog_folder/$prog_filename"
 fi
-readonly PROGLINES=$(< "$PROGFULLPATH" awk 'END {print NR}')
-readonly PROGHASH=$(< "$PROGFULLPATH" hash)
-readonly PROGUUID="L:${PROGLINES}-MD:${PROGHASH}"
-# this is version of bash-boilerplate - replace by versioning of your script; start at 1.0.0
-readonly TODAY=$(date "+%Y-%m-%d")
-readonly PROGIDEN="«${PROGNAME} ${PROGVERS}»"
-[[ -z "${TEMP:-}" ]] && TEMP=/tmp
 
-PROGDATE="??"
+readonly today=$(date "+%Y-%m-%d")
+
+prog_modified="??"
 os_uname=$(uname -s)
-[[ "$os_uname" = "Linux" ]]  && PROGDATE=$(stat -c %y "$0" 2>/dev/null | cut -c1-16) # generic linux
-[[ "$os_uname" = "Darwin" ]] && PROGDATE=$(stat -f "%Sm" "$0" 2>/dev/null) # for MacOS
+[[ "$os_uname" = "Linux" ]]  && prog_modified=$(stat -c %y    "$0" 2>/dev/null | cut -c1-16) # generic linux
+[[ "$os_uname" = "Darwin" ]] && prog_modified=$(stat -f "%Sm" "$0" 2>/dev/null) # for MacOS
 
-verbose=0
-quiet=0
-piped=0
 force=0
 help=0
-tmpd="$TEMP/$PROGNAME"
-logd="./log"
 
-[[ $# -gt 0 ]] && [[ $1 == "-v" ]] && verbose=1
-#to enable verbose even for option parsing
+## ----------- TERMINAL OUTPUT STUFF
 
 [[ -t 1 ]] && piped=0 || piped=1        # detect if out put is piped
+verbose=0
+#to enable verbose even before option parsing
+[[ $# -gt 0 ]] && [[ $1 == "-v" ]] && verbose=1
+quiet=0
+#to enable quiet even before option parsing
+[[ $# -gt 0 ]] && [[ $1 == "-q" ]] && quiet=1
+
 [[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
 
-# Defaults
 
 if [[ $piped -eq 0 ]] ; then
-  readonly col_reset="\033[0m"
-  readonly col_red="\033[1;31m"
-  readonly col_grn="\033[1;32m"
-  readonly col_ylw="\033[1;33m"
+  col_reset="\033[0m" ; col_red="\033[1;31m" ; col_grn="\033[1;32m" ; col_ylw="\033[1;33m"
 else
-  # no colors for piped content
-  readonly col_reset=""
-  readonly col_red=""
-  readonly col_grn=""
-  readonly col_ylw=""
+  col_reset="" ; col_red="" ; col_grn="" ; col_ylw=""
 fi
 
 if [[ $unicode -gt 0 ]] ; then
-  readonly char_succ="✔"
-  readonly char_fail="✖"
-  readonly char_alrt="➨"
-  readonly char_wait="…"
+  char_succ="✔" ; char_fail="✖" ; char_alrt="➨" ; char_wait="…"
 else
-  # no unicode chars if not supported
-  readonly char_succ="OK "
-  readonly char_fail="!! "
-  readonly char_alrt="?? "
-  readonly char_wait="..."
+  char_succ="OK " ; char_fail="!! " ; char_alrt="?? " ; char_wait="..."
 fi
 
 readonly nbcols=$(tput cols || echo 80)
-readonly wprogress=$((nbcols - 5))
 #readonly nbrows=$(tput lines)
+readonly wprogress=$((nbcols - 5))
 
-tmpfile=""
-logfile=""
-
-out() {
-  ((quiet)) && return
-  local message="$*"
-  local prefix=""
-  if is_not_empty "$prefix_fmt" ; then
-    prefix=$(date "$prefix_fmt")
-  fi
-  printf '%b\n' "$prefix$message";
-}
+out() { ((quiet)) || printf '%b\n' "$*";  }
 #TIP: use «out» to show any kind of output, except when option --quiet is specified
 #TIP:> out "User is [$USER]"
 
 progress() {
-  ((quiet)) && return
-  local message="$*"
-  if ((piped)); then
-    printf '%b\n' "$message";
-    # \r makes no sense in file or pipe
-  else
-    printf "... %-${wprogress}b\r" "$message                                             ";
-    # next line will overwrite this line
-  fi
+  ((quiet)) || (
+    ((piped)) && out "$*" || printf "... %-${wprogress}b\r" "$*                                             ";
+  )
 }
 #TIP: use «progress» to show one line of progress that will be overwritten by the next output
 #TIP:> progress "Now generating file $nb of $total ..."
 
-error_prefix="${col_red}>${col_reset}"
-trap "die \"ERROR \$? after \$SECONDS seconds \n\
-\${error_prefix} last command : '\$BASH_COMMAND' \" \
-\$(< \$PROGFULLPATH awk -v lineno=\$LINENO \
-'NR == lineno {print \"\${error_prefix} from line \" lineno \" : \" \$0}')" INT TERM EXIT
-# cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
-# trap 'echo ‘$BASH_COMMAND’ failed with error code $?' ERR
-safe_exit() { 
-  [[ -n "$tmpfile" ]] && [[ -f "$tmpfile" ]] && rm "$tmpfile"
-  trap - INT TERM EXIT
-  exit 0
-}
-
-is_set()       { [[ "$1" -gt 0 ]]; }
-is_empty()     { [[ -z "$1" ]] ; }
-is_not_empty() { [[ -n "$1" ]] ; }
-#TIP: use «is_empty» and «is_not_empty» to test for variables
-#TIP:> if is_empty "$email" ; then ; echo "Need Email!" ; fi
-
-is_file() { [[ -f "$1" ]] ; }
-is_dir()  { [[ -d "$1" ]] ; }
-
-
-die()     { tput bel; out "${col_red}${char_fail} $PROGIDEN${col_reset}: $*" >&2; safe_exit; }
-fail()    { tput bel; out "${col_red}${char_fail} $PROGIDEN${col_reset}: $*" >&2; safe_exit; }
+die()     { tput bel; out "${col_red}${char_fail} $prog_filename${col_reset}: $*" >&2; safe_exit; }
+fail()    { tput bel; out "${col_red}${char_fail} $prog_filename${col_reset}: $*" >&2; safe_exit; }
 #TIP: use «die» to show error message and exit program
 #TIP:> if [[ ! -f $output ]] ; then ; die "could not create output" ; fi
 
@@ -252,11 +182,10 @@ announce(){ out "${col_grn}${char_wait}${col_reset}  $*"; sleep 1 ; }
 #TIP: use «announce» to show the start of a task
 #TIP:> announce "now generating the reports"
 
-log()   { is_set $verbose && out "${col_ylw}# $* ${col_reset}" ; }
-debug() { is_set $verbose && out "${col_ylw}# $* ${col_reset}" ; }
+log()   { ((verbose)) && out "${col_ylw}# $* ${col_reset}" ; }
 #TIP: use «log» to show information that will only be visible when -v is specified
 #TIP:> log "input file: [$inputname] - [$inputsize] MB"
-	  
+
 escape()  { echo "$*" | sed 's/\//\\\//g' ; }
 #TIP: use «escape» to extra escape '/' paths in regex
 #TIP:> sed 's/$(escape $path)//g'
@@ -270,10 +199,10 @@ confirm() { is_set $force && return 0; read -r -p "$1 [y/N] " -n 1; echo " "; [[
 #TIP: use «confirm» for interactive confirmation before doing something
 #TIP:> if ! confirm "Delete file"; then ; echo "skip deletion" ;   fi
 
-ask() { 
+ask() {
   # $1 = variable name
   # $2 = question
-  # $3 = default value  
+  # $3 = default value
   # not using read -i because that doesn't work on MacOS
   local ANSWER
   read -r -p "$2 ($3) > " ANSWER
@@ -286,25 +215,36 @@ ask() {
 #TIP: use «ask» for interactive setting of variables
 #TIP:> ask NAME "What is your name" "Peter"
 
+error_prefix="${col_red}>${col_reset}"
+trap "die \"ERROR \$? after \$SECONDS seconds \n\
+\${error_prefix} last command : '\$BASH_COMMAND' \" \
+\$(< \$prog_fullpath awk -v lineno=\$LINENO \
+'NR == lineno {print \"\${error_prefix} from line \" lineno \" : \" \$0}')" INT TERM EXIT
+# cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
+# trap 'echo ‘$BASH_COMMAND’ failed with error code $?' ERR
+safe_exit() { 
+  [[ -n "$tmpfile" ]] && [[ -f "$tmpfile" ]] && rm "$tmpfile"
+  trap - INT TERM EXIT
+  log "$prog_filename finished after $SECONDS seconds"
+  exit 0
+}
 
-os_uname=$(uname -s)
-os_bits=$(uname -m)
-os_version=$(uname -v)
+is_set()       { [[ "$1" -gt 0 ]]; }
+is_empty()     { [[ -z "$1" ]] ; }
+is_not_empty() { [[ -n "$1" ]] ; }
+#TIP: use «is_empty» and «is_not_empty» to test for variables
+#TIP:> if is_empty "$email" ; then ; echo "Need Email!" ; fi
 
-on_mac()	  { [[ "$os_uname" = "Darwin" ]] ;	}
-on_linux()	{ [[ "$os_uname" = "Linux" ]] ;	}
+is_file() { [[ -f "$1" ]] ; }
+is_dir()  { [[ -d "$1" ]] ; }
+#TIP: use «is_file» and «is_dir» to test for files or folders
+#TIP:> if is_file "/etc/hosts" ; then ; cat "/etc/hosts" ; fi
 
-on_32bit()	{ [[ "$os_bits"  = "i386" ]] ;	}
-on_64bit()	{ [[ "$os_bits"  = "x86_64" ]] ;	}
-#TIP: use «on_mac»/«on_linux»/'on_32bit'/'on_64bit' to only run things on certain platforms
-#TIP:> on_mac && log "Running on MacOS"
+show_usage() {
+  out "Program: ${col_grn}$prog_filename $prog_version${col_reset} by ${col_ylw}$prog_author${col_reset}"
+  out "Updated: ${col_grn}$prog_modified${col_reset}"
 
-usage() {
-  out "Program: ${col_grn}$PROGFNAME${col_reset} by ${col_ylw}$PROGAUTH${col_reset}"
-  out "Version: ${col_grn}$PROGVERS${col_reset} (${col_ylw}$PROGUUID${col_reset})"
-  out "Updated: ${col_grn}$PROGDATE${col_reset}"
-
-  echo -n "Usage: $PROGFNAME"
+  echo -n "Usage: $prog_filename"
    list_options \
   | awk '
   BEGIN { FS="|"; OFS=" "; oneline="" ; fulltext="Flags, options and parameters:"}
@@ -334,7 +274,7 @@ usage() {
   '
 }
 
-tips(){
+show_tips(){
   < "$0" grep -v "\$0" \
   | awk "
   /TIP: / {\$1=\"\"; gsub(/«/,\"$col_grn\"); gsub(/»/,\"$col_reset\"); print \"*\" \$0}
@@ -358,25 +298,13 @@ init_options() {
    fi
 }
 
-run_only_show_errors(){
-  tmpfile=$(mktemp)
-  if ( "$@" ) 2>> "$tmpfile" >> "$tmpfile" ; then
-    #all OK
-    rm "$tmpfile"
-    return 0
-  else
-    alert "[$*] gave an error"
-    cat "$tmpfile"
-    rm "$tmpfile"
-    return 255
-  fi
-}
-
 verify_programs(){
+  os_uname=$(uname -s)
+  os_version=$(uname -v)
   log "Running: on $os_uname ($os_version)"
   list_programs=$(echo "$*" | sort -u |  tr "\n" " ")
   hash_programs=$(echo "$list_programs" | hash)
-  verify_cache="$PROGDIR/.$PROGNAME.$hash_programs.verified"
+  verify_cache="$prog_folder/.$prog_prefix.$hash_programs.verified"
   if [[ -f "$verify_cache" ]] ; then
     log "Verify : $list_programs (cached)"
   else 
@@ -384,13 +312,13 @@ verify_programs(){
     programs_ok=1
     for prog in "$@" ; do
       if [[ -z $(which "$prog") ]] ; then
-        alert "$PROGIDEN needs [$prog] but this program cannot be found on this $os_uname machine"
+        alert "$prog_filename needs [$prog] but this program cannot be found on this $os_uname machine"
         programs_ok=0
       fi
     done
     if [[ $programs_ok -eq 1 ]] ; then
       (
-        echo "$PROGNAME: check required programs OK"
+        echo "$prog_prefix: check required programs OK"
         echo "$list_programs"
         date 
       ) > "$verify_cache"
@@ -401,16 +329,13 @@ verify_programs(){
 folder_prep(){
     if [[ -n "$1" ]] ; then
         local folder="$1"
-        local maxdays=365
-        if [[ -n "$2" ]] ; then
-            maxdays=$2
-        fi
-        if [ ! -d "$folder" ] ; then
+        local max_days=${2:-365}
+        if [[ ! -d "$folder" ]] ; then
             log "Create folder [$folder]"
             mkdir "$folder"
         else
-            log "Cleanup: [$folder] - delete files older than $maxdays day(s)"
-            find "$folder" -mtime "+$maxdays" -type f -exec rm {} \;
+            log "Cleanup: [$folder] - delete files older than $max_days day(s)"
+            find "$folder" -mtime "+$max_days" -type f -exec rm {} \;
         fi
 	fi
 }
@@ -419,15 +344,14 @@ folder_prep(){
 
 expects_single_params(){
   list_options | grep 'param|1|' > /dev/null
-}
-
+  }
 expects_multi_param(){
   list_options | grep 'param|n|' > /dev/null
-}
+  }
 
 parse_options() {
     if [[ $# -eq 0 ]] ; then
-       usage >&2 ; safe_exit
+       show_usage >&2 ; safe_exit
     fi
 
     ## first process all the -x --xxxx flags and options
@@ -451,11 +375,13 @@ parse_options() {
         $1 ~ /flag/   && "--"$3 == opt {print $3"=1"}
         $1 ~ /option/ &&  "-"$2 == opt {print $3"=$2; shift"}
         $1 ~ /option/ && "--"$3 == opt {print $3"=$2; shift"}
+        $1 ~ /secret/ &&  "-"$2 == opt {print $3"=$2; shift"}
+        $1 ~ /secret/ && "--"$3 == opt {print $3"=$2; shift"}
         ')
         if [[ -n "$save_option" ]] ; then
           if echo "$save_option" | grep shift >> /dev/null ; then
-			local save_var
-			save_var=$(echo "$save_option" | cut -d= -f1)
+            local save_var
+            save_var=$(echo "$save_option" | cut -d= -f1)
             log "Found  : ${save_var}=$2"
           else
             log "Found  : $save_option"
@@ -467,32 +393,22 @@ parse_options() {
         shift
     done
 
-    if [[ $help -gt 0 ]] ; then
+    ((help)) && (
       echo "### USAGE"
-      usage
+      show_usage
       echo ""
       echo "### SCRIPT AUTHORING TIPS"
-      tips
+      show_tips
       safe_exit
-    fi
+    )
 
-    # special case: init
-    if [[ $(lcase "$1") == "init" ]] ; then
-      action="init"
-      return
-    fi
-    if [[ $(lcase "$1") == "test" ]] ; then
-      action="test"
-      return
-    fi
     ## then run through the given parameters
   if expects_single_params ; then
-    #log "Process: single params"
-    single_params=$(list_options | grep 'param|1|' | cut -d'|' -f3 | xargs)
+    single_params=$(list_options | grep 'param|1|' | cut -d'|' -f3)
+    list_singles=$(echo "$single_params" | xargs)
     nb_singles=$(echo "$single_params" | wc -w)
-    log "Expect : $nb_singles single parameter(s): $single_params"
-    [[ $# -eq 0 ]] && die "need the parameter(s) [$single_params]"
-
+    log "Expect : $nb_singles single parameter(s): $list_singles"
+    [[ $# -eq 0 ]] && die "need the parameter(s) [$list_singles]"
 
     for param in $single_params ; do
       [[ $# -eq 0 ]] && die "need parameter [$param]"
@@ -528,64 +444,45 @@ parse_options() {
   fi
 }
 
-create_script_from_template(){
-  out "## SCRIPT INITIALISATION"
-  if [[ "@email" == @* ]] ; then
-    out "let's create a new project and remove everything you don't need!"
-    ask EMAIL "What is your email address?" "$USER@$HOSTNAME"
-    ask NEWNAME "What is the name of your script?" "newscript.sh"
-    ask VERSION "What is the version of your script?" "1.0.0"
-    < "$PROGFULLPATH" awk -v email="$EMAIL" -v version="$VERSION" '{gsub(/@version/,version); gsub(/@email/,email); print$0}' > "$NEWNAME"
-    if [[ -d $PROGDIR/usage ]] ; then
-      if confirm "Delete all non-essential files? "; then
-        rm -fr "$PROGDIR/usage"
-        rm -fr "$PROGDIR/docs"
-      fi
-    fi
+tmpfile=""
+logfile=""
+
+run_only_show_errors(){
+  local tmpfile
+  tmpfile=$(mktemp)
+  if ( "$@" ) >> "$tmpfile" 2>&1; then
+    #all OK
+    rm "$tmpfile"
+    return 0
   else
-    die "This is no longer a template script, it was already initialised by @email - please start from original script.sh"
+    alert "[$*] gave an error"
+    cat "$tmpfile"
+    rm "$tmpfile"
+    return 255
   fi
 }
 
-run_tests(){
-    # just show all options/params with values
-  show_commands=$(list_options \
-    | awk '
-    BEGIN { FS="|"; OFS=" ";}
-    $1 ~ /flag|option/ {print "out \"-" $2 "/--" $3 " = $" $3 " (" $1 ")\""}
-    $1 ~ /param/ {print "out \"[" $3 "] (" $1 ")\""}
-    ')
-    if [[ -n "$show_commands" ]] ; then
-        eval "$show_commands"
-   fi
-}
-
 prep_log_and_temp_dir(){
-  if [[ -n "$tmpd" ]] ; then
+  if is_set "$tmpd" ; then
     folder_prep "$tmpd" 1
-    tmpfile=$(mktemp "$tmpd/$TODAY.XXXXXX")
+    tmpfile=$(mktemp "$tmpd/$today.XXXXXX")
     log "Tmpfile: $tmpfile"
     # you can use this teporary file in your program
     # it will be deleted automatically if the program ends without problems
   fi
   if [[ -n "$logd" ]] ; then
     folder_prep "$logd" 7
-    logfile=$logd/$PROGNAME.$TODAY.log
+    logfile=$logd/$prog_prefix.$today.log
     log "Logfile: $logfile"
-    echo "$(date '+%H:%M:%S') | [$PROGFNAME] $PROGVERS ($PROGUUID) started" >> "$logfile"
+    echo "$(date '+%H:%M:%S') | [$prog_filename] $prog_version started" >> "$logfile"
   fi
 }
+
+
 [[ $runasroot == 1  ]] && [[ $UID -ne 0 ]] && die "MUST be root to run this script"
 [[ $runasroot == -1 ]] && [[ $UID -eq 0 ]] && die "CANNOT be root to run this script"
 
-
- # this will show up even if your main() has errors
-log "-------- PREPARE $PROGIDEN"
 init_options
 parse_options "$@"
-# this will show up even if your main() has errors
-log "-------- STARTING (main) $PROGIDEN"
 main
-# main program is finished
-log "-------- FINISH   (main) $PROGIDEN" 
 safe_exit

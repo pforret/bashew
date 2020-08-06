@@ -10,25 +10,27 @@ Tool to create new bash scripts
 
 ## Usage
 
-### 1. create bash repo
+### 1. create new bash repo
 if you want to create a bash script repo, with CI/CD, with README, with tests, with versioning ... 
 
 #### 1.a. create from template in Github
 
-* go to https://github.com/pforret/bashew
-* click on 'Use this template'
-* choose name
+* on https://github.com/pforret/bashew, click on 'Use this template'
+* then clone your new repo
 
         git clone https://github.com/<you>/<your repo>.git
         cd <your repo>
-        bashew.sh init             # will ask for details and iniialise/clean up the repo
-        
-* and if you have [semver.sh](https://github.com/pforret/semver)
-
-        semver.sh push          # will commit and push new code
-        semver.sh new patch     # will set new version to 0.0.1
+        ./bashew.sh init             # will ask for details and iniialise/clean up the repo
 
 #### 1.b. git clone into new repo
+
+        git clone --depth=1 https://github.com/pforret/bashew.git <newname>
+        cd <newname>
+        ./bashew.sh init             # will ask for details and iniialise/clean up the repo
+
+#### and then, if you have [semver.sh](https://github.com/pforret/semver):
+        semver.sh push          # will commit and push new code
+        semver.sh new patch     # will set new version to 0.0.1
 
 ### 2. create stand-alone bash scripts
 if you (regularly) want to create just a script
