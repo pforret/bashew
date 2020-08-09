@@ -1,3 +1,6 @@
 log/
-template/.*
 .idea/
+.template*
+.tmp
+.bashew*
+log

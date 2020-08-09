@@ -6,37 +6,9 @@
 ![repo size](https://img.shields.io/github/repo-size/pforret/bashew)
 
 # bashew
-Tool to create new bash scripts
+bash script creator - from small stand-alone script to complex projects with CI/CD and testing
 
-## Usage
-
-### 1. create new bash repo
-if you want to create a bash script repo, with CI/CD, with README, with tests, with versioning ... 
-
-#### 1.a. create from template in Github
-
-* on https://github.com/pforret/bashew, click on 'Use this template'
-* then clone your new repo
-
-        git clone https://github.com/<you>/<your repo>.git
-        cd <your repo>
-        ./bashew.sh init             # will ask for details and iniialise/clean up the repo
-
-#### 1.b. git clone into new repo
-
-        git clone --depth=1 https://github.com/pforret/bashew.git <newname>
-        cd <newname>
-        ./bashew.sh init             # will ask for details and iniialise/clean up the repo
-
-#### and then, if you have [semver.sh](https://github.com/pforret/semver):
-        semver.sh push          # will commit and push new code
-        semver.sh new patch     # will set new version to 0.0.1
-
-### 2. create stand-alone bash scripts
-if you (regularly) want to create just a script
-
-
-#### Install this repo
+## Installation
 
 * manually
 
@@ -47,6 +19,36 @@ if you (regularly) want to create just a script
 
         basher install pforret/bashew
         
-#### Create new script
+## Usage
 
-        bashew.sh new <your script>.sh
+### 1. create new bash script (without repo)
+
+        bashew.sh script
+    
+### 2. create new bash project folder (with README.md ...)
+
+        bashew.sh project
+
+### 3. create a bash script repo, with CI/CD, with README, with tests, with versioning ... 
+
+* on [github.com/pforret/bashew](https://github.com/pforret/bashew), click on '**Use this template**'
+* then clone your new repo
+
+        git clone https://github.com/<you>/<your repo>.git
+        cd <your repo>
+        ./bashew.sh init             # will ask for details and iniialise/clean up the repo
+
+#### and then, if you have [semver.sh](https://github.com/pforret/semver):
+        semver.sh push          # will commit and push new code
+        semver.sh new patch     # will set new version to 0.0.1
+
+
+----
+
+  to be tested
+  
+### 4. git clone into new repo
+
+        git clone --depth=1 https://github.com/pforret/bashew.git <newname>
+        cd <newname>
+        ./bashew.sh init             # will ask for details and iniialise/clean up the repo

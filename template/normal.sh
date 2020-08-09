@@ -7,6 +7,7 @@
 ### - implement the different actions you defined in 2. in main()
 ### ==============================================================================
 
+### Created by author_name ( author_username ) on meta_today
 readonly prog_version="0.0.1"
 readonly prog_author="author@email.com"
 
