@@ -8,12 +8,10 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: list scripts to be tested
-      run: ls ./*.sh
 
     - name: Check for basic execution
       run: ls ./*.sh | xargs bash
