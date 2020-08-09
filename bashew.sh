@@ -99,33 +99,33 @@ copy_and_replace() {
   local input="$1"
   local output="$2"
 
-  < "$input" \
-    sed "s/author_name/$author_fullname/g" |
+  sed <"$input" \
+    "s/author_name/$author_fullname/g" |
     sed "s/author_username/$author_username/g" |
     sed "s/author@email.com/$author_email/g" |
     sed "s/package_name/$clean_name/g" |
     sed "s/package_description/$new_description/g" |
     sed "s/meta_thisday/$thisday/g" \
-    sed "s/meta_thisyear/$thisyear/g" \
-      > "$output"
+      sed "s/meta_thisyear/$thisyear/g" \
+      >"$output"
 
 }
 
-random_word(){
+random_word() {
   (
-  if  aspell -v > /dev/null ; then
-    aspell -d en dump master | aspell -l en expand
-  elif [[ -f /usr/share/dict/words ]] ; then
-    cat /usr/share/dict/words
-  elif [[ -f /usr/dict/words ]] ; then
-    cat /usr/dict/words
-  else
-    printf 'new\n%.0s' {1..50000}
-  fi
-  ) \
-    | grep -v "'" \
-    | grep -v " " \
-    | awk "NR == $RANDOM {print tolower(\$0)}"
+    if aspell -v >/dev/null; then
+      aspell -d en dump master | aspell -l en expand
+    elif [[ -f /usr/share/dict/words ]]; then
+      cat /usr/share/dict/words
+    elif [[ -f /usr/dict/words ]]; then
+      cat /usr/dict/words
+    else
+      printf 'new\n%.0s' {1..50000}
+    fi
+  ) |
+    grep -v "'" |
+    grep -v " " |
+    awk "NR == $RANDOM {print tolower(\$0)}"
 }
 
 #####################################################################
@@ -553,14 +553,14 @@ run_only_show_errors() {
 }
 
 prep_log_and_temp_dir() {
-  if [[ -n "$tmpd" ]]; then
+  if [[ -n "${tmpd:-}" ]]; then
     folder_prep "$tmpd" 1
     tmpfile=$(mktemp "$tmpd/$thisday.XXXXXX")
     log "Tmpfile: $tmpfile"
     # you can use this temporary file in your program
     # it will be deleted automatically when the program ends
   fi
-  if [[ -n "$logd" ]]; then
+  if [[ -n "${logd:-}" ]]; then
     folder_prep "$logd" 7
     logfile=$logd/$prog_prefix.$thisday.log
     log "Logfile: $logfile"
