@@ -1,9 +1,12 @@
 ![Bash CI](https://github.com/pforret/bashew/workflows/Bash%20CI/badge.svg) 
 ![Shellcheck CI](https://github.com/pforret/bashew/workflows/Shellcheck%20CI/badge.svg)
-![version](https://img.shields.io/github/v/release/pforret/bashew?include_prereleases)
+![version](https://img.shields.io/github/v/release/pforret/bashew)
 ![activity](https://img.shields.io/github/commit-activity/m/pforret/bashew)
 
 # bashew
+
+![Bashew Logo](bashew.jpg)
+
 bash script creator - from small stand-alone script to complex projects with CI/CD and testing
 
 ## Installation
@@ -51,3 +54,7 @@ bash script creator - from small stand-alone script to complex projects with CI/
         git clone --depth=1 https://github.com/pforret/bashew.git <newname>
         cd <newname>
         ./bashew.sh init             # will ask for details and iniialise/clean up the repo
+
+## What's that name? Bashew?
+* comes from 'bash new'
+* rhymes with cashew
