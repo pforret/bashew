@@ -99,15 +99,15 @@ copy_and_replace() {
   local input="$1"
   local output="$2"
 
-  sed <"$input" \
-    "s/author_name/$author_fullname/g" |
-    sed "s/author_username/$author_username/g" |
-    sed "s/author@email.com/$author_email/g" |
-    sed "s/package_name/$clean_name/g" |
-    sed "s/package_description/$new_description/g" |
-    sed "s/meta_thisday/$thisday/g" \
-      sed "s/meta_thisyear/$thisyear/g" \
-      >"$output"
+    < "$input" \
+      sed "s/author_name/$author_fullname/g" \
+    | sed "s/author_username/$author_username/g" \
+    | sed "s/author@email.com/$author_email/g" \
+    | sed "s/package_name/$clean_name/g" \
+    | sed "s/package_description/$new_description/g" \
+    | sed "s/meta_thisday/$thisday/g" \
+    | sed "s/meta_thisyear/$thisyear/g" \
+    > "$output"
 
 }
 
@@ -120,7 +120,7 @@ random_word() {
     elif [[ -f /usr/dict/words ]]; then
       cat /usr/dict/words
     else
-      printf 'new\n%.0s' {1..50000}
+      printf 'zero\none\ntwo\nthree\nfour\nfive\nsix\nseven\nseight\nnine\n%.0s' {1..10000}
     fi
   ) |
     grep -v "'" |
@@ -145,13 +145,34 @@ main() {
   script)
     random_name="$(random_word)_$(random_word).sh"
     get_author_data "./$random_name"
-    announce "Creating $new_name ..."
+    announce "Creating script $new_name ..."
     copy_and_replace "$prog_folder/template/normal.sh" "$new_name"
     ;;
 
   project)
     random_name="$(random_word)_$(random_word)/"
     get_author_data "./$random_name"
+    if [[ ! -d "$new_name" ]] ; then
+      announce "Creating project $new_name ..."
+      mkdir "$new_name"
+      template_folder="$prog_folder/template"
+      for file in "$template_folder"/*.md "$template_folder/LICENSE" "$template_folder"/.gitignore  ; do
+        bfile=$(basename "$file")
+        echo -n "$bfile "
+        new_file="$new_name/$bfile"
+        copy_and_replace "$file" "$new_file"
+      done
+      echo -n "$clean_name.sh "
+      copy_and_replace "$template_folder/normal.sh" "$new_name/$clean_name.sh"
+      chmod +x "$new_name/$clean_name.sh"
+      echo " "
+      if confirm "Do you want to 'git init' the new project?" ; then
+        ( pushd "$new_name" && git init && git add . && popd ) > /dev/null 2>&1
+      fi
+      success "next step: 'cd $new_name' and start scripting!"
+    else
+      alert "Folder [$new_name] already exists, cannot make a new project there"
+    fi
     ;;
 
   init) ;;
