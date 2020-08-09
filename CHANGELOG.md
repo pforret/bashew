@@ -9,9 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - support basher
 - support semver.sh
 
-## [1.0.2] - 2020-08-09
+## [1.1.0] - 2020-08-09
 ### Added/changed
 - Implement 'bashew.sh script'
+- Implement 'bashew.sh project'
+- test basher install
 - random script name generator
 - fix bash_unit and shellcheck warnings
 
