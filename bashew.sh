@@ -1,35 +1,35 @@
 #!/usr/bin/env bash
-### ==============================================================================
-### SO HOW DO YOU PROCEED WITH YOUR SCRIPT?
-### - define the options/parameters and defaults you need in list_options()
-### - define functions your might need by changing/adding to perform_action1()
-### - add binaries your script needs (e.g. ffmpeg) to verify_programs awk (...) wc
-### - implement the different actions you defined in 2. in main()
-### ==============================================================================
+readonly script_author="peter@forret.com"
+readonly script_fname=$(basename "$0")
+readonly script_name=$(basename "$0" .sh)
+readonly thisday=$(date "+%Y-%m-%d")
+readonly thisyear=$(date "+%Y")
 
+if [[ -z $(dirname "$0") ]]; then
+  # script called without path ; must be in $PATH somewhere
+  # shellcheck disable=SC2230
+  script_install_path=$(which "$0")
+  if [[ -L "$script_install_path" ]] ; then
+    script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
+    script_install_folder=$(dirname "$script_install_path")
+  fi
+else
+  # script called with relative/absolute path
+  script_install_folder=$(dirname "$0")
+  script_install_folder=$(cd "$script_install_folder" && pwd)
+  if [[ -n "$script_install_folder" ]] ; then
+    script_install_path="$script_install_folder/$script_fname"
+  else
+    script_install_path="$0"
+  fi
+fi
+
+script_version=0.0.0
+[[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
 if git status >/dev/null; then
   readonly in_git_repo=1
 else
   readonly in_git_repo=0
-fi
-readonly prog_author="peter@forret.com"
-readonly prog_filename=$(basename "$0")
-readonly prog_prefix=$(basename "$0" .sh)
-readonly thisday=$(date "+%Y-%m-%d")
-readonly thisyear=$(date "+%Y")
-
-prog_folder=$(dirname "$0")
-if [[ -z "$prog_folder" ]]; then
-  # script called without  path specified ; must be in $PATH somewhere
-  readonly prog_fullpath=$(which "$0")
-  prog_folder=$(dirname "$prog_fullpath")
-else
-  prog_folder=$(cd "$prog_folder" && pwd)
-  readonly prog_fullpath="$prog_folder/$prog_filename"
-fi
-prog_version=0.0.0
-if [[ -f "$prog_folder/VERSION.md" ]]; then
-  prog_version=$(cat "$prog_folder/VERSION.md")
 fi
 
 # runasroot: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
@@ -51,10 +51,10 @@ param|1|action|action to perform: script/project/init/update
 
 list_examples() {
   echo -n "
-$prog_filename script  : create new (stand-alone) script (interactive)
-$prog_filename project : create new bash script repo (interactive)
-$prog_filename init    : initialize this repo as a new project (when generated from the 'bashew' template repo)
-$prog_filename update  : update repo (git pull)
+$script_fname script  : create new (stand-alone) script (interactive)
+$script_fname project : create new bash script repo (interactive)
+$script_fname init    : initialize this repo as a new project (when generated from the 'bashew' template repo)
+$script_fname update  : update repo (git pull)
 " | grep -v '^$'
 
 }
@@ -133,8 +133,8 @@ random_word() {
 #####################################################################
 
 main() {
-  log "Program: $prog_filename $prog_version"
-  log "Updated: $prog_modified"
+  log "Program: $script_fname $script_version"
+  log "Updated: $script_modified"
   log "Run as : $USER@$HOSTNAME"
   # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
   verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
@@ -146,7 +146,7 @@ main() {
     random_name="$(random_word)_$(random_word).sh"
     get_author_data "./$random_name"
     announce "Creating script $new_name ..."
-    copy_and_replace "$prog_folder/template/normal.sh" "$new_name"
+    copy_and_replace "$script_install_folder/template/normal.sh" "$new_name"
     ;;
 
   project)
@@ -155,7 +155,7 @@ main() {
     if [[ ! -d "$new_name" ]] ; then
       announce "Creating project $new_name ..."
       mkdir "$new_name"
-      template_folder="$prog_folder/template"
+      template_folder="$script_install_folder/template"
       for file in "$template_folder"/*.md "$template_folder/LICENSE" "$template_folder"/.gitignore  ; do
         bfile=$(basename "$file")
         echo -n "$bfile "
@@ -167,7 +167,7 @@ main() {
       chmod +x "$new_name/$clean_name.sh"
       echo " "
       if confirm "Do you want to 'git init' the new project?" ; then
-        ( pushd "$new_name" && git init && git add . && popd ) > /dev/null 2>&1
+        ( pushd "$new_name" && git init && git add . && popd || return) > /dev/null 2>&1
       fi
       success "next step: 'cd $new_name' and start scripting!"
     else
@@ -175,12 +175,13 @@ main() {
     fi
     ;;
 
-  init) ;;
+  init)
+    #TODO: clean up templated repo
+    ;;
 
-  \
-    update) ;;
-
-  \
+  update)
+    #TODO:
+    ;;
     *)
 
     die "param [$action] not recognized"
@@ -196,6 +197,7 @@ main() {
 set -uo pipefail
 IFS=$'\n\t'
 hash() {
+  # shellcheck disable=SC2230
   if [[ -n $(which md5sum) ]]; then
     # regular linux
     md5sum | cut -c1-6
@@ -205,10 +207,10 @@ hash() {
   fi
 }
 
-prog_modified="??"
+script_modified="??"
 os_uname=$(uname -s)
-[[ "$os_uname" == "Linux" ]] && prog_modified=$(stat -c %y "$0" 2>/dev/null | cut -c1-16) # generic linux
-[[ "$os_uname" == "Darwin" ]] && prog_modified=$(stat -f "%Sm" "$0" 2>/dev/null)          # for MacOS
+[[ "$os_uname" == "Linux" ]] && script_modified=$(stat -c %y "$0" 2>/dev/null | cut -c1-16) # generic linux
+[[ "$os_uname" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$0" 2>/dev/null)          # for MacOS
 
 force=0
 help=0
@@ -267,12 +269,12 @@ progress() {
 
 die() {
   tput bel
-  out "${col_red}${char_fail} $prog_filename${col_reset}: $*" >&2
+  out "${col_red}${char_fail} $script_fname${col_reset}: $*" >&2
   safe_exit
 }
 fail() {
   tput bel
-  out "${col_red}${char_fail} $prog_filename${col_reset}: $*" >&2
+  out "${col_red}${char_fail} $script_fname${col_reset}: $*" >&2
   safe_exit
 }
 #TIP: use «die» to show error message and exit program
@@ -329,14 +331,14 @@ ask() {
 error_prefix="${col_red}>${col_reset}"
 trap "die \"ERROR \$? after \$SECONDS seconds \n\
 \${error_prefix} last command : '\$BASH_COMMAND' \" \
-\$(< \$prog_fullpath awk -v lineno=\$LINENO \
+\$(< \$script_install_path awk -v lineno=\$LINENO \
 'NR == lineno {print \"\${error_prefix} from line \" lineno \" : \" \$0}')" INT TERM EXIT
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 # trap 'echo ‘$BASH_COMMAND’ failed with error code $?' ERR
 safe_exit() {
   [[ -n "$tmpfile" ]] && [[ -f "$tmpfile" ]] && rm "$tmpfile"
   trap - INT TERM EXIT
-  log "$prog_filename finished after $SECONDS seconds"
+  log "$script_fname finished after $SECONDS seconds"
   exit 0
 }
 
@@ -352,10 +354,10 @@ is_dir() { [[ -d "$1" ]]; }
 #TIP:> if is_file "/etc/hosts" ; then ; cat "/etc/hosts" ; fi
 
 show_usage() {
-  out "Program: ${col_grn}$prog_filename $prog_version${col_reset} by ${col_ylw}$prog_author${col_reset}"
-  out "Updated: ${col_grn}$prog_modified${col_reset}"
+  out "Program: ${col_grn}$script_fname $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
+  out "Updated: ${col_grn}$script_modified${col_reset}"
 
-  echo -n "Usage: $prog_filename"
+  echo -n "Usage: $script_fname"
   list_options |
     awk '
   BEGIN { FS="|"; OFS=" "; oneline="" ; fulltext="Flags, options and parameters:"}
@@ -415,21 +417,22 @@ verify_programs() {
   log "Running: on $os_uname ($os_version)"
   list_programs=$(echo "$*" | sort -u | tr "\n" " ")
   hash_programs=$(echo "$list_programs" | hash)
-  verify_cache="$prog_folder/.$prog_prefix.$hash_programs.verified"
+  verify_cache="$script_install_folder/.$script_name.$hash_programs.verified"
   if [[ -f "$verify_cache" ]]; then
     log "Verify : $list_programs (cached)"
   else
     log "Verify : $list_programs"
     programs_ok=1
     for prog in "$@"; do
+      # shellcheck disable=SC2230
       if [[ -z $(which "$prog") ]]; then
-        alert "$prog_filename needs [$prog] but this program cannot be found on this $os_uname machine"
+        alert "$script_fname needs [$prog] but this program cannot be found on this $os_uname machine"
         programs_ok=0
       fi
     done
     if [[ $programs_ok -eq 1 ]]; then
       (
-        echo "$prog_prefix: check required programs OK"
+        echo "$script_name: check required programs OK"
         echo "$list_programs"
         date
       ) >"$verify_cache"
@@ -583,9 +586,9 @@ prep_log_and_temp_dir() {
   fi
   if [[ -n "${logd:-}" ]]; then
     folder_prep "$logd" 7
-    logfile=$logd/$prog_prefix.$thisday.log
+    logfile=$logd/$script_name.$thisday.log
     log "Logfile: $logfile"
-    echo "$(date '+%H:%M:%S') | [$prog_filename] $prog_version started" >>"$logfile"
+    echo "$(date '+%H:%M:%S') | [$script_fname] $script_version started" >>"$logfile"
   fi
 }
 
