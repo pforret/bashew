@@ -5,9 +5,9 @@
 
 # bashew
 
-![Bashew Logo](bashew.jpg)
+![Bashew Logo](bashew.png)
 
-bash script creator - from small stand-alone script to complex projects with CI/CD and testing
+bash script creator
 
 ## Installation
 

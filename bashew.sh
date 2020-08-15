@@ -2,36 +2,6 @@
 readonly script_author="peter@forret.com"
 readonly script_fname=$(basename "$0")
 readonly script_name=$(basename "$0" .sh)
-readonly thisday=$(date "+%Y-%m-%d")
-readonly thisyear=$(date "+%Y")
-
-if [[ -z $(dirname "$0") ]]; then
-  # script called without path ; must be in $PATH somewhere
-  # shellcheck disable=SC2230
-  script_install_path=$(which "$0")
-  if [[ -L "$script_install_path" ]] ; then
-    script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
-    script_install_folder=$(dirname "$script_install_path")
-  fi
-else
-  # script called with relative/absolute path
-  script_install_folder=$(dirname "$0")
-  script_install_folder=$(cd "$script_install_folder" && pwd)
-  if [[ -n "$script_install_folder" ]] ; then
-    script_install_path="$script_install_folder/$script_fname"
-  else
-    script_install_path="$0"
-  fi
-fi
-
-script_version=0.0.0
-[[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
-if git status >/dev/null; then
-  readonly in_git_repo=1
-else
-  readonly in_git_repo=0
-fi
-
 # runasroot: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
 readonly runasroot=-1
 
@@ -108,7 +78,6 @@ copy_and_replace() {
     | sed "s/meta_thisday/$thisday/g" \
     | sed "s/meta_thisyear/$thisyear/g" \
     > "$output"
-
 }
 
 random_word() {
@@ -138,7 +107,6 @@ main() {
   log "Run as : $USER@$HOSTNAME"
   # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
   verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
-  prep_log_and_temp_dir
 
   action=$(lcase "$action")
   case $action in
@@ -256,57 +224,28 @@ readonly nbcols=$(tput cols || echo 80)
 readonly wprogress=$((nbcols - 5))
 
 out() { ((quiet)) || printf '%b\n' "$*"; }
-#TIP: use «out» to show any kind of output, except when option --quiet is specified
-#TIP:> out "User is [$USER]"
 
 progress() {
   ((quiet)) || (
     ((piped)) && out "$*" || printf "... %-${wprogress}b\r" "$*                                             "
   )
 }
-#TIP: use «progress» to show one line of progress that will be overwritten by the next output
-#TIP:> progress "Now generating file $nb of $total ..."
 
 die() {
   tput bel
   out "${col_red}${char_fail} $script_fname${col_reset}: $*" >&2
   safe_exit
 }
-fail() {
-  tput bel
-  out "${col_red}${char_fail} $script_fname${col_reset}: $*" >&2
-  safe_exit
-}
-#TIP: use «die» to show error message and exit program
-#TIP:> if [[ ! -f $output ]] ; then ; die "could not create output" ; fi
 
 alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; } # print error and continue
-#TIP: use «alert» to show alert message but continue
-#TIP:> if [[ ! -f $output ]] ; then ; alert "could not create output" ; fi
-
 success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
-#TIP: use «success» to show success message but continue
-#TIP:> if [[ -f $output ]] ; then ; success "output was created!" ; fi
-
-announce() {
-  out "${col_grn}${char_wait}${col_reset}  $*"
-  sleep 1
-}
-#TIP: use «announce» to show the start of a task
-#TIP:> announce "now generating the reports"
-
+announce() { out "${col_grn}${char_wait}${col_reset}  $*" ; sleep 1 ;}
 log() { ((verbose)) && out "${col_ylw}# $* ${col_reset}"; }
-#TIP: use «log» to show information that will only be visible when -v is specified
-#TIP:> log "input file: [$inputname] - [$inputsize] MB"
 
 escape() { echo "$*" | sed 's/\//\\\//g'; }
-#TIP: use «escape» to extra escape '/' paths in regex
-#TIP:> sed 's/$(escape $path)//g'
 
 lcase() { echo "$*" | awk '{print tolower($0)}'; }
 ucase() { echo "$*" | awk '{print toupper($0)}'; }
-#TIP: use «lcase» and «ucase» to convert to upper/lower case
-#TIP:> param=$(lcase $param)
 
 confirm() {
   is_set $force && return 0
@@ -324,9 +263,6 @@ ask() {
   read -r -p "$1 ($2): " answer
   echo "${answer:-$2}"
 }
-
-#TIP: use «ask» for interactive setting of variables
-#TIP:> NAME=$(ask "What is your name" "Peter")
 
 error_prefix="${col_red}>${col_reset}"
 trap "die \"ERROR \$? after \$SECONDS seconds \n\
@@ -453,8 +389,6 @@ folder_prep() {
     fi
   fi
 }
-#TIP: use «folder_prep» to create a folder if needed and otherwise clean up old files
-#TIP:> folder_prep "$logd" 7 # delete all files olders than 7 days
 
 expects_single_params() {
   list_options | grep 'param|1|' >/dev/null
@@ -465,6 +399,7 @@ expects_multi_param() {
 
 parse_options() {
   if [[ $# -eq 0 ]]; then
+
     show_usage >&2
     safe_exit
   fi
@@ -561,18 +496,37 @@ parse_options() {
 tmpfile=""
 logfile=""
 
-run_only_show_errors() {
-  local tmpfile
-  tmpfile=$(mktemp)
-  if ("$@") >>"$tmpfile" 2>&1; then
-    #all OK
-    rm "$tmpfile"
-    return 0
+initialize_script_data(){
+    readonly thisday=$(date "+%Y-%m-%d")
+    readonly thisyear=$(date "+%Y")
+
+   if [[ -z $(dirname "$0") ]]; then
+    # script called without path ; must be in $PATH somewhere
+    # shellcheck disable=SC2230
+    script_install_path=$(which "$0")
+    if [[ -L "$script_install_path" ]] ; then
+      script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
+      script_install_folder=$(dirname "$script_install_path")
+    fi
   else
-    alert "[$*] gave an error"
-    cat "$tmpfile"
-    rm "$tmpfile"
-    return 255
+    # script called with relative/absolute path
+    script_install_folder=$(dirname "$0")
+    script_install_folder=$(cd "$script_install_folder" && pwd)
+    if [[ -n "$script_install_folder" ]] ; then
+      script_install_path="$script_install_folder/$script_fname"
+    else
+      script_install_path="$0"
+    fi
+  fi
+  log "Script binary: $script_install_path"
+  log "Script folder: $script_install_folder"
+
+  script_version=0.0.0
+  [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
+  if git status >/dev/null; then
+    readonly in_git_repo=1
+  else
+    readonly in_git_repo=0
   fi
 }
 
@@ -595,7 +549,9 @@ prep_log_and_temp_dir() {
 [[ $runasroot == 1 ]] && [[ $UID -ne 0 ]] && die "MUST be root to run this script"
 [[ $runasroot == -1 ]] && [[ $UID -eq 0 ]] && die "CANNOT be root to run this script"
 
+initialize_script_data
 init_options
 parse_options "$@"
+prep_log_and_temp_dir
 main
 safe_exit
