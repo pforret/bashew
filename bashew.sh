@@ -40,7 +40,7 @@ get_author_data() {
   [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]] && guess_email="$BASHEW_AUTHOR_EMAIL"
   [[ -n ${BASHEW_AUTHOR_USERNAME:-} ]] && guess_username="$BASHEW_AUTHOR_USERNAME"
 
-  if is_set $in_git_repo; then
+  if is_set "$in_git_repo"; then
     guess_fullname=$(git config user.name)
     guess_email=$(git config user.email)
     guess_username=$(git config remote.origin.url | cut -d: -f2)
@@ -50,7 +50,7 @@ get_author_data() {
     guess_username=$(basename "$guess_username")
   fi
   author_fullname=$(ask "Author full name        " "$guess_fullname")
-  author_email=$(ask "Author email            " "$guess_email")
+  author_email=$(   ask "Author email            " "$guess_email")
   author_username=$(ask "Author (github) username" "$guess_username")
 
   # save for later
