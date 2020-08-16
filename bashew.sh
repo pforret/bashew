@@ -550,7 +550,6 @@ initialize_script_data(){
     script_install_path=$(which "$0")
     if [[ -n $(readlink "$script_install_path") ]] ; then
       script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
-      log "Script linked: $script_install_path"
     fi
     script_install_folder=$(dirname "$script_install_path")
   else
@@ -561,6 +560,10 @@ initialize_script_data(){
       script_install_path="$script_install_folder/$script_fname"
     else
       script_install_path="$0"
+    fi
+    if [[ -n $(readlink "$script_install_path") ]] ; then
+      script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
+      script_install_folder=$(dirname "$script_install_path")
     fi
   fi
   log "Script binary: $script_install_path"
