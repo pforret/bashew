@@ -5,9 +5,9 @@
 
 # bashew
 
-![Bashew Logo](bashew.png)
+![Bashew Logo](assets/bashew.png)
 
-bash script creator
+bash script / project creator
 
 ## Installation
 
@@ -22,17 +22,49 @@ bash script creator
         
 ## Usage
 
+    Usage: bashew.sh [-h] [-q] [-v] [-f] [-t <tmpd>] [-l <logd>] [-n <name>] <action>
+    Flags, options and parameters:
+        -h|--help      : [flag] show usage [default: off]
+        -q|--quiet     : [flag] no output [default: off]
+        -v|--verbose   : [flag] output more [default: off]
+        -f|--force     : [flag] do not ask for confirmation (always yes) [default: off]
+        -t|--tmpd <val>: [optn] folder for temp files  [default: .tmp]
+        -l|--logd <val>: [optn] folder for log files  [default: log]
+        -n|--name <val>: [optn] name of new script or project
+        <action>  : [parameter] action to perform: script/project/init/update
+
 ### 1. create new bash script (without repo)
 
-        bashew.sh script                # will ask for author & script details
-    
-### 2. create new bash project folder (with README.md ...)
+        bashew.sh script                # will interactively ask for author & script details
+        bashew.sh -f script             # will create new script with random name
+        bashew.sh -f -n "../list.sh" script # will create new script ../list.sh
+   
+Example:
 
-        bashew.sh project               # will ask for author & script details     
+    > bashew.sh -f script
+    …  Creating script ./towel_nappers.sh ...
+    ./towel_nappers.sh
+    
+    > bashew.sh -f -q script
+    ./iffiest_prepays.sh
+ 
+### 2. create new bash project folder/repo (with README.md, CI/CD)
+
+        bashew.sh project               # will interactively ask for author & script details
+        bashew.sh -f project            # will create new project with random name
+        bashew.sh -f -n "bingo" project # will create new project in folder "bingo"
+
+Example:
+
+    > bashew.sh -f project
+    …  Creating project ./tendon_mingle ...
+    CHANGELOG.md README.md VERSION.md LICENSE .gitignore tendon_mingle.sh bitbucket-pipelines .github/workflows  
+    ✔  next step: 'cd ./tendon_mingle' and start scripting!
+
 
 ----
 
-  to be tested
+  TBD
   
 ### 3. create a bash script repo, with CI/CD, with README, with tests, with versioning ... 
 

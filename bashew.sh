@@ -15,6 +15,7 @@ flag|f|force|do not ask for confirmation (always yes)
 #option|m|model|template script to use: small/normal|normal
 option|t|tmpd|folder for temp files|.tmp
 option|l|logd|folder for log files|log
+option|n|name|name of new script or project
 param|1|action|action to perform: script/project/init/update
 " | grep -v '^#'
 }
@@ -24,22 +25,25 @@ list_examples() {
 $script_fname script  : create new (stand-alone) script (interactive)
 $script_fname project : create new bash script repo (interactive)
 $script_fname init    : initialize this repo as a new project (when generated from the 'bashew' template repo)
-$script_fname update  : update repo (git pull)
+$script_fname update  : update $script_fname to latest version (git pull)
 " | grep -v '^$'
 
 }
 ## Put your helper scripts here
 get_author_data() {
   # $1 = proposed script/project name
-  announce "1. first we need the information of the author"
+
+  ## always have something as author data
   guess_fullname="$(whoami)"
   guess_username="$guess_fullname"
   guess_email="$guess_fullname@$(hostname)"
 
+  # if there is prior data, use that
   [[ -n ${BASHEW_AUTHOR_FULLNAME:-} ]] && guess_fullname="$BASHEW_AUTHOR_FULLNAME"
   [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]] && guess_email="$BASHEW_AUTHOR_EMAIL"
   [[ -n ${BASHEW_AUTHOR_USERNAME:-} ]] && guess_username="$BASHEW_AUTHOR_USERNAME"
 
+  # if there is git config data, use that
   if is_set "$in_git_repo"; then
     guess_fullname=$(git config user.name)
     guess_email=$(git config user.email)
@@ -49,20 +53,30 @@ get_author_data() {
     # pforret/bashew.git => pforret
     guess_username=$(basename "$guess_username")
   fi
-  author_fullname=$(ask "Author full name        " "$guess_fullname")
-  author_email=$(   ask "Author email            " "$guess_email")
-  author_username=$(ask "Author (github) username" "$guess_username")
 
-  # save for later
-  export BASHEW_AUTHOR_FULLNAME="$author_fullname"
-  export BASHEW_AUTHOR_EMAIL="$author_email"
-  export BASHEW_AUTHOR_USERNAME="$author_username"
+  if ((force)) ; then
+    author_fullname="$guess_fullname"
+    author_email="$guess_email"
+    author_username="$guess_username"
+    new_name="$1"
+    clean_name=$(basename "$new_name" .sh)
+    new_description="This is my script $clean_name"
+  else
+    announce "1. first we need the information of the author"
+    author_fullname=$(ask "Author full name        " "$guess_fullname")
+    author_email=$(   ask "Author email            " "$guess_email")
+    author_username=$(ask "Author (github) username" "$guess_username")
+    export BASHEW_AUTHOR_FULLNAME="$author_fullname"
+    export BASHEW_AUTHOR_EMAIL="$author_email"
+    export BASHEW_AUTHOR_USERNAME="$author_username"
 
-  announce "2. now we need the path and name of this new script/repo"
-  new_name=$(ask "Script name" "$1")
-  announce "3. give some description of what the script should do"
-  clean_name=$(basename "$new_name" .sh)
-  new_description=$(ask "Script description" "This is my script $clean_name")
+    announce "2. now we need the path and name of this new script/repo"
+    new_name=$(ask "Script name" "$1")
+
+    announce "3. give some description of what the script should do"
+    clean_name=$(basename "$new_name" .sh)
+    new_description=$(ask "Script description" "This is my script $clean_name")
+  fi
 }
 
 copy_and_replace() {
@@ -82,19 +96,22 @@ copy_and_replace() {
 
 random_word() {
   (
-    if aspell -v >/dev/null; then
+    if aspell -v >/dev/null 2>&1; then
       aspell -d en dump master | aspell -l en expand
     elif [[ -f /usr/share/dict/words ]]; then
+      # works on MacOS
       cat /usr/share/dict/words
     elif [[ -f /usr/dict/words ]]; then
       cat /usr/dict/words
     else
-      printf 'zero\none\ntwo\nthree\nfour\nfive\nsix\nseven\nseight\nnine\n%.0s' {1..10000}
+      printf 'zero,one,two,three,four,five,six,seven,eight,nine,ten,alfa,bravo,charlie,delta,echo,foxtrot,golf,hotel,india,juliet,kilo,lima,mike,november,oscar,papa,quebec,romeo,sierra,tango,uniform,victor,whiskey,xray,yankee,zulu%.0s' {1..3000} \
+      | tr ',' "\n"
     fi
-  ) |
-    grep -v "'" |
-    grep -v " " |
-    awk "NR == $RANDOM {print tolower(\$0)}"
+  ) \
+    | awk 'length($1) > 2 && length($1) < 8 {print}' \
+    | grep -v "'" \
+    | grep -v " " \
+    | awk "NR == $RANDOM {print tolower(\$0)}"
 }
 
 #####################################################################
@@ -111,29 +128,52 @@ main() {
   action=$(lcase "$action")
   case $action in
   script)
-    random_name="$(random_word)_$(random_word).sh"
-    get_author_data "./$random_name"
+    if [[ -n "${name:-}" ]] && [[ ! "$name" == " " ]]; then
+      log "Using [$name] as name"
+      get_author_data "$name"
+    else
+      random_name="$(random_word)_$(random_word).sh"
+      log "Using [$random_name] as name"
+      get_author_data "./$random_name"
+    fi
     announce "Creating script $new_name ..."
     copy_and_replace "$script_install_folder/template/normal.sh" "$new_name"
+    chmod +x "$new_name"
+    echo "$new_name"
     ;;
 
   project)
-    random_name="$(random_word)_$(random_word)/"
-    get_author_data "./$random_name"
+    if [[ -n "${name:-}" ]] && [[ ! "$name" == " " ]]; then
+      get_author_data "$name"
+    else
+      random_name="$(random_word)_$(random_word)"
+      get_author_data "./$random_name"
+    fi
     if [[ ! -d "$new_name" ]] ; then
       announce "Creating project $new_name ..."
       mkdir "$new_name"
       template_folder="$script_install_folder/template"
+      ## first do all files that can change
       for file in "$template_folder"/*.md "$template_folder/LICENSE" "$template_folder"/.gitignore  ; do
         bfile=$(basename "$file")
-        echo -n "$bfile "
+        ((quiet)) || echo -n "$bfile "
         new_file="$new_name/$bfile"
         copy_and_replace "$file" "$new_file"
       done
-      echo -n "$clean_name.sh "
+      ((quiet)) || echo -n "$clean_name.sh "
       copy_and_replace "$template_folder/normal.sh" "$new_name/$clean_name.sh"
       chmod +x "$new_name/$clean_name.sh"
-      echo " "
+      ## now the CI/CD files
+      if [[ -f "$template_folder/bitbucket-pipelines.yml" ]] ; then
+        ((quiet)) || echo -n "bitbucket-pipelines "
+        cp "$template_folder/bitbucket-pipelines.yml" "$new_name/"
+      fi
+      if [[ -d "$template_folder/.github" ]] ; then
+        ((quiet)) || echo -n ".github "
+        cp -r "$template_folder/.github" "$new_name/.github"
+      fi
+
+      ((quiet)) || echo " "
       if confirm "Do you want to 'git init' the new project?" ; then
         ( pushd "$new_name" && git init && git add . && popd || return) > /dev/null 2>&1
       fi
@@ -144,11 +184,15 @@ main() {
     ;;
 
   init)
-    #TODO: clean up templated repo
+    repo_name=$(basename "$script_install_folder")
+    if [[ "$repo_name" == "bashew" ]] ; then
+      die "You can only run the './$script_fname init' of a new repo, derived from the template on Github"
+    fi
+
     ;;
 
   update)
-    #TODO:
+    pushd "$script_install_folder" && git pull && popd
     ;;
     *)
 
