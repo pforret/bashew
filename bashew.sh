@@ -548,10 +548,11 @@ initialize_script_data(){
     # script called without path ; must be in $PATH somewhere
     # shellcheck disable=SC2230
     script_install_path=$(which "$0")
-    if [[ -L "$script_install_path" ]] ; then
+    if [[ -n $(readlink "$script_install_path") ]] ; then
       script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
-      script_install_folder=$(dirname "$script_install_path")
+      log "Script linked: $script_install_path"
     fi
+    script_install_folder=$(dirname "$script_install_path")
   else
     # script called with relative/absolute path
     script_install_folder=$(dirname "$0")
