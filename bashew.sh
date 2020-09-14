@@ -192,7 +192,10 @@ main() {
     ;;
 
   update)
-    pushd "$script_install_folder" && git pull && popd
+    pushd "$script_install_folder" || die "No access to folder [$script_install_folder]"
+    git pull || die "Cannot update with git"
+    # shellcheck disable=SC2164
+    popd
     ;;
     *)
 
@@ -396,28 +399,13 @@ verify_programs() {
   os_version=$(uname -v)
   log "Running: on $os_uname ($os_version)"
   list_programs=$(echo "$*" | sort -u | tr "\n" " ")
-  hash_programs=$(echo "$list_programs" | hash)
-  verify_cache="$script_install_folder/.$script_name.$hash_programs.verified"
-  if [[ -f "$verify_cache" ]]; then
-    log "Verify : $list_programs (cached)"
-  else
-    log "Verify : $list_programs"
-    programs_ok=1
-    for prog in "$@"; do
-      # shellcheck disable=SC2230
-      if [[ -z $(which "$prog") ]]; then
-        alert "$script_fname needs [$prog] but this program cannot be found on this $os_uname machine"
-        programs_ok=0
-      fi
-    done
-    if [[ $programs_ok -eq 1 ]]; then
-      (
-        echo "$script_name: check required programs OK"
-        echo "$list_programs"
-        date
-      ) >"$verify_cache"
+  log "Verify : $list_programs"
+  for prog in "$@"; do
+    # shellcheck disable=SC2230
+    if [[ -z $(which "$prog") ]]; then
+      die "$script_fname needs [$prog] but this program cannot be found on this $os_uname machine"
     fi
-  fi
+  done
 }
 
 folder_prep() {

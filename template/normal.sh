@@ -39,8 +39,6 @@ flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
 option|l|log_dir|folder for log files |log
 option|t|tmp_dir|folder for temp files|.tmp
-option|u|user|USER to use|$USER
-secret|p|pass|password to use
 param|1|action|action to perform: action1/action2/...
 # there can only be 1 param|n and it should be the last
 param|1|input|input file
@@ -70,17 +68,17 @@ main() {
     log "Run as : $USER@$HOSTNAME"
     # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
     verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
-    initialize_script_data
     prep_log_and_temp_dir
 
     action=$(lower_case "$action")
     case $action in
     action1 )
-        #perform_action1 "$input" "$output"
+        # shellcheck disable=SC2154
+        perform_action1 "$input" "$output"
         ;;
 
     action2 )
-        #perform_action2 "$input" "$output"
+        perform_action2 "$input" "$output"
         ;;
 
     *)
@@ -107,6 +105,8 @@ hash(){
     md5 | cut -c1-"$length"
   fi 
 }
+#TIP: use «hash» to create short unique values of fixed length based on longer inputs
+#TIP:> url_contents="$domain.$(echo $url | hash 8).html"
 
 
 prog_modified="??"
@@ -411,11 +411,9 @@ parse_options() {
       eval "$multi_param=( $* )"
     fi
   else 
-    log "No multi param to process"
     nb_multis=0
     multi_param=""
     [[ $# -gt 0 ]] && die "cannot interpret extra parameters"
-    log "all parameters have been processed"
   fi
 }
 
@@ -480,6 +478,20 @@ prep_log_and_temp_dir(){
   fi
 }
 
+look_for_env(){
+  if [[ -f "$script_install_folder/.env" ]] ; then
+    log "Read config from [$script_install_folder/.env]"
+    # shellcheck disable=SC1090
+    source "$script_install_folder/.env"
+  fi
+  if [[ -f "./.env" ]] ; then
+    log "Read config from [./.env]"
+    source "./.env"
+  fi
+}
+
+initialize_script_data
+look_for_env
 init_options
 parse_options "$@"
 main
