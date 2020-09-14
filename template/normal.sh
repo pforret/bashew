@@ -417,7 +417,7 @@ parse_options() {
   fi
 }
 
-initialize_script_data(){
+lookup_script_data(){
     readonly thisday=$(date "+%Y-%m-%d")
     readonly thisyear=$(date "+%Y")
 
@@ -478,11 +478,18 @@ prep_log_and_temp_dir(){
   fi
 }
 
-look_for_env(){
+import_env_if_any(){
+  #TIP: use «.env» file in script folder / current folder to set secrets or common config settings
+  #TIP:> AWS_SECRET_ACCESS_KEY="..."
+
   if [[ -f "$script_install_folder/.env" ]] ; then
     log "Read config from [$script_install_folder/.env]"
     # shellcheck disable=SC1090
     source "$script_install_folder/.env"
+  fi
+  if [[ -f "../.env" ]] ; then
+    log "Read config from [../.env]"
+    source "../.env"
   fi
   if [[ -f "./.env" ]] ; then
     log "Read config from [./.env]"
@@ -490,9 +497,19 @@ look_for_env(){
   fi
 }
 
-initialize_script_data
-look_for_env
+lookup_script_data
+
+# set default values for flags & options
 init_options
+
+# overwrite with .env if any
+import_env_if_any
+
+# overwrite with specified options if any
 parse_options "$@"
+
+# run main program
 main
+
+# exit and clean up
 safe_exit
