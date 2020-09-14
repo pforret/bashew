@@ -8,11 +8,19 @@
 ### ==============================================================================
 
 ### Created by author_name ( author_username ) on meta_thisday
-readonly prog_version="0.0.1"
-readonly prog_author="author@email.com"
+ 
+# change program version to your own release logic
+script_version="0.0.0"
+# if there is a VERSION.md in this script's folder, it will take priority for version number
+readonly script_author="author@email.com"
+readonly script_prefix=$(basename "$0" .sh)
+readonly script_basename=$(basename "$0")
+readonly execution_day=$(date "+%Y-%m-%d")
 
-# runasroot: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
-readonly runasroot=-1
+# run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
+readonly run_as_root=-1
+[[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
+[[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
 list_options() {
   ### Change the next lines to reflect which flags/options/parameters you need
@@ -29,33 +37,27 @@ flag|h|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
-option|l|logd|folder for log files |log
-option|t|tmpd|folder for temp files|.tmp
+option|l|log_dir|folder for log files |log
+option|t|tmp_dir|folder for temp files|.tmp
 option|u|user|USER to use|$USER
 secret|p|pass|password to use
-param|1|action|action to perform: init/list/test/...
+param|1|action|action to perform: action1/action2/...
 # there can only be 1 param|n and it should be the last
+param|1|input|input file
 param|1|output|output file
-param|n|inputs|input files
 " | grep -v '^#'
 }
 
 ## Put your helper scripts here
 
 perform_action1(){
-  OUTPUT="$1"
-  shift
-  echo INPUTS = "$*"
-  echo OUTPUT = "$OUTPUT"
+  echo "ACTION 1"
   # < "$1"  do_stuff > "$2"
 }
 
 perform_action2(){
-  OUTPUT="$1"
-  shift
-  echo INPUTS = "$*"
-  echo OUTPUT = "$OUTPUT"
-  # < "$1"  do_stuff > "$2"
+  echo "ACTION 2"
+  # < "$1"  do_other_stuff > "$2"
 }
 
 #####################################################################
@@ -63,25 +65,26 @@ perform_action2(){
 #####################################################################
 
 main() {
-    log "Program: $prog_filename $prog_version"
+    log "Program: $script_basename $script_version"
     log "Updated: $prog_modified"
     log "Run as : $USER@$HOSTNAME"
     # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
     verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
+    initialize_script_data
     prep_log_and_temp_dir
 
-    action=$(lcase "$action")
+    action=$(lower_case "$action")
     case $action in
     action1 )
-        #perform_action1 "$output" $inputs
+        #perform_action1 "$input" "$output"
         ;;
 
     action2 )
-        #perform_action2 "$output" $inputs
+        #perform_action2 "$input" "$output"
         ;;
 
     *)
-        die "param [$action] not recognized"
+        die "action [$action] not recognized"
     esac
 }
 
@@ -92,35 +95,24 @@ main() {
 # removed -e because it made basic [[ testing ]] difficult
 set -uo pipefail
 IFS=$'\n\t'
+# shellcheck disable=SC2120
 hash(){
+  length=${1:-6}
+  # shellcheck disable=SC2230
   if [[ -n $(which md5sum) ]] ; then
     # regular linux
-    md5sum | cut -c1-6
+    md5sum | cut -c1-"$length"
   else
     # macos
-    md5 | cut -c1-6
+    md5 | cut -c1-"$length"
   fi 
 }
 
-# change program version to your own release logic
-readonly prog_prefix=$(basename "$0" .sh)
-readonly prog_filename=$(basename "$0")
-prog_folder=$(dirname "$0")
-if [[ -z "$prog_folder" ]] ; then
-	# script called without  path specified ; must be in $PATH somewhere
-  readonly prog_fullpath=$(which "$0")
-  prog_folder=$(dirname "$prog_fullpath")
-else
-  prog_folder=$(cd "$prog_folder" && pwd)
-  readonly prog_fullpath="$prog_folder/$prog_filename"
-fi
-
-readonly today=$(date "+%Y-%m-%d")
 
 prog_modified="??"
-os_uname=$(uname -s)
-[[ "$os_uname" = "Linux" ]]  && prog_modified=$(stat -c %y    "$0" 2>/dev/null | cut -c1-16) # generic linux
-[[ "$os_uname" = "Darwin" ]] && prog_modified=$(stat -f "%Sm" "$0" 2>/dev/null) # for MacOS
+os_name=$(uname -s)
+[[ "$os_name" = "Linux" ]]  && prog_modified=$(stat -c %y    "$0" 2>/dev/null | cut -c1-16) # generic linux
+[[ "$os_name" = "Darwin" ]] && prog_modified=$(stat -f "%Sm" "$0" 2>/dev/null) # for MacOS
 
 force=0
 help=0
@@ -166,16 +158,16 @@ progress() {
 #TIP: use «progress» to show one line of progress that will be overwritten by the next output
 #TIP:> progress "Now generating file $nb of $total ..."
 
-die()     { tput bel; out "${col_red}${char_fail} $prog_filename${col_reset}: $*" >&2; safe_exit; }
-fail()    { tput bel; out "${col_red}${char_fail} $prog_filename${col_reset}: $*" >&2; safe_exit; }
+die()     { tput bel; out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2; safe_exit; }
+fail()    { tput bel; out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2; safe_exit; }
 #TIP: use «die» to show error message and exit program
 #TIP:> if [[ ! -f $output ]] ; then ; die "could not create output" ; fi
 
 alert()   { out "${col_red}${char_alrt}${col_reset}: $*" >&2 ; }                       # print error and continue
-#TIP: use «alert» to show alert message but continue
+#TIP: use «alert» to show alert/warning message but continue
 #TIP:> if [[ ! -f $output ]] ; then ; alert "could not create output" ; fi
 
-success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
+success() { out "${col_grn}${char_succ}${col_reset}  $*" ; }
 #TIP: use «success» to show success message but continue
 #TIP:> if [[ -f $output ]] ; then ; success "output was created!" ; fi
 
@@ -183,18 +175,14 @@ announce(){ out "${col_grn}${char_wait}${col_reset}  $*"; sleep 1 ; }
 #TIP: use «announce» to show the start of a task
 #TIP:> announce "now generating the reports"
 
-log()   { ((verbose)) && out "${col_ylw}# $* ${col_reset}" ; }
+log()   { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2 ; }
 #TIP: use «log» to show information that will only be visible when -v is specified
 #TIP:> log "input file: [$inputname] - [$inputsize] MB"
 
-escape()  { echo "$*" | sed 's/\//\\\//g' ; }
-#TIP: use «escape» to extra escape '/' paths in regex
-#TIP:> sed 's/$(escape $path)//g'
-
-lcase()   { echo "$*" | awk '{print tolower($0)}' ; }
-ucase()   { echo "$*" | awk '{print toupper($0)}' ; }
-#TIP: use «lcase» and «ucase» to convert to upper/lower case
-#TIP:> param=$(lcase $param)
+lower_case()   { echo "$*" | awk '{print tolower($0)}' ; }
+upper_case()   { echo "$*" | awk '{print toupper($0)}' ; }
+#TIP: use «lower_case» and «upper_case» to convert to upper/lower case
+#TIP:> param=$(lower_case $param)
 
 confirm() { is_set $force && return 0; read -r -p "$1 [y/N] " -n 1; echo " "; [[ $REPLY =~ ^[Yy]$ ]];}
 #TIP: use «confirm» for interactive confirmation before doing something
@@ -219,14 +207,14 @@ ask() {
 error_prefix="${col_red}>${col_reset}"
 trap "die \"ERROR \$? after \$SECONDS seconds \n\
 \${error_prefix} last command : '\$BASH_COMMAND' \" \
-\$(< \$prog_fullpath awk -v lineno=\$LINENO \
+\$(< \$script_install_path awk -v lineno=\$LINENO \
 'NR == lineno {print \"\${error_prefix} from line \" lineno \" : \" \$0}')" INT TERM EXIT
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 # trap 'echo ‘$BASH_COMMAND’ failed with error code $?' ERR
 safe_exit() { 
-  [[ -n "$tmpfile" ]] && [[ -f "$tmpfile" ]] && rm "$tmpfile"
+  [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
   trap - INT TERM EXIT
-  log "$prog_filename finished after $SECONDS seconds"
+  log "$script_basename finished after $SECONDS seconds"
   exit 0
 }
 
@@ -242,10 +230,10 @@ is_dir()  { [[ -d "$1" ]] ; }
 #TIP:> if is_file "/etc/hosts" ; then ; cat "/etc/hosts" ; fi
 
 show_usage() {
-  out "Program: ${col_grn}$prog_filename $prog_version${col_reset} by ${col_ylw}$prog_author${col_reset}"
+  out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
   out "Updated: ${col_grn}$prog_modified${col_reset}"
 
-  echo -n "Usage: $prog_filename"
+  echo -n "Usage: $script_basename"
    list_options \
   | awk '
   BEGIN { FS="|"; OFS=" "; oneline="" ; fulltext="Flags, options and parameters:"}
@@ -300,48 +288,34 @@ init_options() {
 }
 
 verify_programs(){
-  os_uname=$(uname -s)
+  os_name=$(uname -s)
   os_version=$(uname -v)
-  log "Running: on $os_uname ($os_version)"
+  log "Running: on $os_name ($os_version)"
   list_programs=$(echo "$*" | sort -u |  tr "\n" " ")
-  hash_programs=$(echo "$list_programs" | hash)
-  verify_cache="$prog_folder/.$prog_prefix.$hash_programs.verified"
-  if [[ -f "$verify_cache" ]] ; then
-    log "Verify : $list_programs (cached)"
-  else 
-    log "Verify : $list_programs"
-    programs_ok=1
-    for prog in "$@" ; do
-      if [[ -z $(which "$prog") ]] ; then
-        alert "$prog_filename needs [$prog] but this program cannot be found on this $os_uname machine"
-        programs_ok=0
-      fi
-    done
-    if [[ $programs_ok -eq 1 ]] ; then
-      (
-        echo "$prog_prefix: check required programs OK"
-        echo "$list_programs"
-        date 
-      ) > "$verify_cache"
+  log "Verify : $list_programs"
+  for prog in "$@" ; do
+    # shellcheck disable=SC2230
+    if [[ -z $(which "$prog") ]] ; then
+      die "$script_basename needs [$prog] but this program cannot be found on this [$os_name] machine"
     fi
-  fi
+  done
 }
 
 folder_prep(){
-    if [[ -n "$1" ]] ; then
-        local folder="$1"
-        local max_days=${2:-365}
-        if [[ ! -d "$folder" ]] ; then
-            log "Create folder [$folder]"
-            mkdir "$folder"
-        else
-            log "Cleanup: [$folder] - delete files older than $max_days day(s)"
-            find "$folder" -mtime "+$max_days" -type f -exec rm {} \;
-        fi
-	fi
+  if [[ -n "$1" ]] ; then
+      local folder="$1"
+      local max_days=${2:-365}
+      if [[ ! -d "$folder" ]] ; then
+          log "Create folder : [$folder]"
+          mkdir "$folder"
+      else
+          log "Cleanup folder: [$folder] - delete files older than $max_days day(s)"
+          find "$folder" -mtime "+$max_days" -type f -exec rm {} \;
+      fi
+  fi
 }
 #TIP: use «folder_prep» to create a folder if needed and otherwise clean up old files
-#TIP:> folder_prep "$logd" 7 # delete all files olders than 7 days
+#TIP:> folder_prep "$log_dir" 7 # delete all files olders than 7 days
 
 expects_single_params(){
   list_options | grep 'param|1|' > /dev/null
@@ -445,43 +419,66 @@ parse_options() {
   fi
 }
 
-tmpfile=""
-logfile=""
+initialize_script_data(){
+    readonly thisday=$(date "+%Y-%m-%d")
+    readonly thisyear=$(date "+%Y")
 
-run_only_show_errors(){
-  local tmpfile
-  tmpfile=$(mktemp)
-  if ( "$@" ) >> "$tmpfile" 2>&1; then
-    #all OK
-    rm "$tmpfile"
-    return 0
+   if [[ -z $(dirname "$0") ]]; then
+    # script called without path ; must be in $PATH somewhere
+    # shellcheck disable=SC2230
+    script_install_path=$(which "$0")
+    if [[ -n $(readlink "$script_install_path") ]] ; then
+      # when script was installed with e.g. basher
+      script_install_path=$(readlink "$script_install_path") 
+    fi
+    script_install_folder=$(dirname "$script_install_path")
   else
-    alert "[$*] gave an error"
-    cat "$tmpfile"
-    rm "$tmpfile"
-    return 255
+    # script called with relative/absolute path
+    script_install_folder=$(dirname "$0")
+    # resolve to absolute path
+    script_install_folder=$(cd "$script_install_folder" && pwd)
+    if [[ -n "$script_install_folder" ]] ; then
+      script_install_path="$script_install_folder/$script_basename"
+    else
+      script_install_path="$0"
+      script_install_folder=$(dirname "$0")
+    fi
+    if [[ -n $(readlink "$script_install_path") ]] ; then
+      # when script was installed with e.g. basher
+      script_install_path=$(readlink "$script_install_path") 
+      script_install_folder=$(dirname "$script_install_path")
+    fi
+  fi
+  log "Executable: [$script_install_path]"
+  log "In folder : [$script_install_folder]"
+
+  [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
+  if git status >/dev/null; then
+    readonly in_git_repo=1
+  else
+    readonly in_git_repo=0
   fi
 }
 
 prep_log_and_temp_dir(){
-  if is_set "$tmpd" ; then
-    folder_prep "$tmpd" 1
-    tmpfile=$(mktemp "$tmpd/$today.XXXXXX")
-    log "Tmpfile: $tmpfile"
+  tmp_file=""
+  log_file=""
+  # shellcheck disable=SC2154
+  if is_not_empty "$tmp_dir" ; then
+    folder_prep "$tmp_dir" 1
+    tmp_file=$(mktemp "$tmp_dir/$execution_day.XXXXXX")
+    log "tmp_file: $tmp_file"
     # you can use this teporary file in your program
     # it will be deleted automatically if the program ends without problems
   fi
-  if [[ -n "$logd" ]] ; then
-    folder_prep "$logd" 7
-    logfile=$logd/$prog_prefix.$today.log
-    log "Logfile: $logfile"
-    echo "$(date '+%H:%M:%S') | [$prog_filename] $prog_version started" >> "$logfile"
+  # shellcheck disable=SC2154
+  if [[ -n "$log_dir" ]] ; then
+    folder_prep "$log_dir" 7
+    log_file=$log_dir/$script_prefix.$execution_day.log
+    log "log_file: $log_file"
+    echo "$(date '+%H:%M:%S') | [$script_basename] $script_version started" >> "$log_file"
   fi
 }
-
-
-[[ $runasroot == 1  ]] && [[ $UID -ne 0 ]] && die "MUST be root to run this script"
-[[ $runasroot == -1 ]] && [[ $UID -eq 0 ]] && die "CANNOT be root to run this script"
 
 init_options
 parse_options "$@"

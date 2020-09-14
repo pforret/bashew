@@ -549,25 +549,29 @@ initialize_script_data(){
     # shellcheck disable=SC2230
     script_install_path=$(which "$0")
     if [[ -n $(readlink "$script_install_path") ]] ; then
-      script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
+      # when script was installed with e.g. basher
+      script_install_path=$(readlink "$script_install_path")
     fi
     script_install_folder=$(dirname "$script_install_path")
   else
     # script called with relative/absolute path
     script_install_folder=$(dirname "$0")
+    # resolve to absolute path
     script_install_folder=$(cd "$script_install_folder" && pwd)
     if [[ -n "$script_install_folder" ]] ; then
       script_install_path="$script_install_folder/$script_fname"
     else
       script_install_path="$0"
+      script_install_folder=$(dirname "$0")
     fi
     if [[ -n $(readlink "$script_install_path") ]] ; then
-      script_install_path=$(readlink "$script_install_path") # when script was installed with e.g. basher
+      # when script was installed with e.g. basher
+      script_install_path=$(readlink "$script_install_path")
       script_install_folder=$(dirname "$script_install_path")
     fi
   fi
-  log "Script binary: $script_install_path"
-  log "Script folder: $script_install_folder"
+  log "Executable: [$script_install_path]"
+  log "In folder : [$script_install_folder]"
 
   script_version=0.0.0
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
@@ -579,6 +583,7 @@ initialize_script_data(){
 }
 
 prep_log_and_temp_dir() {
+  tmpfile=""
   if [[ -n "${tmpd:-}" ]]; then
     folder_prep "$tmpd" 1
     tmpfile=$(mktemp "$tmpd/$thisday.XXXXXX")
@@ -586,6 +591,7 @@ prep_log_and_temp_dir() {
     # you can use this temporary file in your program
     # it will be deleted automatically when the program ends
   fi
+  logfile=""
   if [[ -n "${logd:-}" ]]; then
     folder_prep "$logd" 7
     logfile=$logd/$script_name.$thisday.log
