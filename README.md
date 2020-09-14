@@ -26,7 +26,7 @@ to create a new standalone script project (in a folder, with README)
         git clone https://github.com/pforret/bashew.git
         ln -s bashew/bashew.sh /usr/local/bin
     
-* or with basher    
+* or with [basher](https://github.com/basherpm/basher) package manager
 
         basher install pforret/bashew
         
