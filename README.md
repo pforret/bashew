@@ -9,6 +9,16 @@
 
 bash script / project creator
 
+## TL;DR
+
+to create a new stand-alone script (just a xyz.sh script), with option parsing, color output
+
+        bashew.sh script
+    
+to create a new standalone script project (in a folder, with README)
+
+        bashew.sh project
+
 ## Installation
 
 * manually
