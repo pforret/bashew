@@ -12,7 +12,7 @@ flag|h|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
-#option|m|model|template script to use: small/normal|normal
+option|m|model|template script to use: small/normal|normal
 option|t|tmpd|folder for temp files|.tmp
 option|l|logd|folder for log files|log
 option|n|name|name of new script or project
@@ -137,7 +137,7 @@ main() {
       get_author_data "./$random_name"
     fi
     announce "Creating script $new_name ..."
-    copy_and_replace "$script_install_folder/template/normal.sh" "$new_name"
+    copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
     chmod +x "$new_name"
     echo "$new_name"
     ;;
