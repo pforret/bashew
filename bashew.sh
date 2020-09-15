@@ -137,6 +137,7 @@ main() {
       get_author_data "./$random_name"
     fi
     announce "Creating script $new_name ..."
+    # shellcheck disable=SC2154
     copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
     chmod +x "$new_name"
     echo "$new_name"
