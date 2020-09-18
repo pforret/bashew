@@ -389,7 +389,7 @@ parse_options() {
       [[ $# -eq 0 ]] && die "need parameter [$param]"
       [[ -z "$1" ]]  && die "need parameter [$param]"
       log "Found  : $param=$1"
-      eval "$param=$1"
+      eval "$param=\"$1\""
       shift
     done
   else 
