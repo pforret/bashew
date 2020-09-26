@@ -113,6 +113,12 @@ random_word() {
     | awk "NR == $RANDOM {print tolower(\$0)}"
 }
 
+delete_folder(){
+  if [[ -d "$1" ]] ; then
+    log "Delete folder [$1]"
+    rm -fr "$1"
+  fi
+}
 #####################################################################
 ## Put your main script here
 #####################################################################
@@ -194,19 +200,15 @@ main() {
     # shellcheck disable=SC2154
     copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
     chmod +x "$new_name"
+    git add "$new_name"
     announce "Now cleaning up unnecessary bashew files ..."
-    if [[ -d template ]] ; then
-      log "Delete folder [template]"
-      rm -fr template
-    fi
-    if [[ -f assets ]] ; then
-      log "Delete folder [assets]"
-      rm -fr assets
-    fi
-    log "Delete script [bashew.sh] in 2 seconds ..."
-    ( sleep 2 ; rm bashew.sh ) &
+    delete_folder template
+    delete_folder assets
+    delete_folder .tmp
+    delete_folder log
+    log "Delete script [bashew.sh] ..."
+    ( sleep 1 ; rm bashew.sh ) & # delete will happen after the script is fisnished
     announce "Script $new_name created, repo is ready for git commit!"
-
     ;;
 
   update)
