@@ -80,16 +80,16 @@ perform_action2(){
 [[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
-readonly script_prefix=$(basename "$0" .sh)
-readonly script_basename=$(basename "$0")
+readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
+readonly script_basename=$(basename "${BASH_SOURCE[0]}")
 
 set -uo pipefail
 IFS=$'\n\t'
 
 prog_modified="??"
 os_name=$(uname -s)
-[[ "$os_name" = "Linux" ]]  && prog_modified=$(stat -c %y    "$0" 2>/dev/null | cut -c1-16) # generic linux
-[[ "$os_name" = "Darwin" ]] && prog_modified=$(stat -f "%Sm" "$0" 2>/dev/null) # for MacOS
+[[ "$os_name" = "Linux" ]]  && prog_modified=$(stat -c %y    "${BASH_SOURCE[0]}" 2>/dev/null | cut -c1-16) # generic linux
+[[ "$os_name" = "Darwin" ]] && prog_modified=$(stat -f "%Sm" "${BASH_SOURCE[0]}" 2>/dev/null) # for MacOS
 
 [[ -t 1 ]] && piped=0 || piped=1        # detect if out put is piped
 if [[ $piped -eq 0 ]] ; then

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly script_author="peter@forret.com"
-readonly script_fname=$(basename "$0")
-readonly script_name=$(basename "$0" .sh)
+readonly script_fname=$(basename "${BASH_SOURCE[0]}")
+readonly script_name=$(basename "${BASH_SOURCE[0]}" .sh)
 # runasroot: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
 readonly runasroot=-1
 
@@ -27,7 +27,6 @@ $script_fname project : create new bash script repo (interactive)
 $script_fname init    : initialize this repo as a new project (when generated from the 'bashew' template repo)
 $script_fname update  : update $script_fname to latest version (git pull)
 " | grep -v '^$'
-
 }
 ## Put your helper scripts here
 get_author_data() {
@@ -40,7 +39,7 @@ get_author_data() {
 
   # if there is prior data, use that
   [[ -n ${BASHEW_AUTHOR_FULLNAME:-} ]] && guess_fullname="$BASHEW_AUTHOR_FULLNAME"
-  [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]] && guess_email="$BASHEW_AUTHOR_EMAIL"
+  [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]]    && guess_email="$BASHEW_AUTHOR_EMAIL"
   [[ -n ${BASHEW_AUTHOR_USERNAME:-} ]] && guess_username="$BASHEW_AUTHOR_USERNAME"
 
   # if there is git config data, use that
@@ -162,7 +161,7 @@ main() {
         copy_and_replace "$file" "$new_file"
       done
       ((quiet)) || echo -n "$clean_name.sh "
-      copy_and_replace "$template_folder/normal.sh" "$new_name/$clean_name.sh"
+      copy_and_replace "$template_folder/$model.sh" "$new_name/$clean_name.sh"
       chmod +x "$new_name/$clean_name.sh"
       ## now the CI/CD files
       if [[ -f "$template_folder/bitbucket-pipelines.yml" ]] ; then
@@ -185,10 +184,28 @@ main() {
     ;;
 
   init)
-    repo_name=$(basename "$script_install_folder")
-    if [[ "$repo_name" == "bashew" ]] ; then
-      die "You can only run the './$script_fname init' of a new repo, derived from the template on Github"
+    repo_name=$(basename "$script_install_folder" .sh)
+    [[ "$repo_name" == "bashew" ]] && die "You can only run the '$script_fname init' of a *new* repo, derived from the bashew template on Github."
+    [[ ! -d ".git" ]] && die "You can only run '$script_fname init' in the root of your repo"
+    [[ ! -d "template" ]] && die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from bashew?"
+    new_name="$repo_name.sh"
+    get_author_data "./$new_name"
+    announce "Creating script $new_name ..."
+    # shellcheck disable=SC2154
+    copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
+    chmod +x "$new_name"
+    announce "Now cleaning up unnecessary bashew files ..."
+    if [[ -d template ]] ; then
+      log "Delete folder [template]"
+      rm -fr template
     fi
+    if [[ -f assets ]] ; then
+      log "Delete folder [assets]"
+      rm -fr assets
+    fi
+    log "Delete script [bashew.sh] in 2 seconds ..."
+    ( sleep 2 ; rm bashew.sh ) &
+    announce "Script $new_name created, repo is ready for git commit!"
 
     ;;
 
@@ -225,8 +242,8 @@ hash() {
 
 script_modified="??"
 os_uname=$(uname -s)
-[[ "$os_uname" == "Linux" ]] && script_modified=$(stat -c %y "$0" 2>/dev/null | cut -c1-16) # generic linux
-[[ "$os_uname" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$0" 2>/dev/null)          # for MacOS
+[[ "$os_uname" == "Linux" ]] && script_modified=$(stat -c %y "${BASH_SOURCE[0]}" 2>/dev/null | cut -c1-16) # generic linux
+[[ "$os_uname" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "${BASH_SOURCE[0]}" 2>/dev/null)          # for MacOS
 
 force=0
 help=0
@@ -372,7 +389,7 @@ show_usage() {
 }
 
 show_tips() {
-  grep <"$0" -v "\$0" |
+  grep <"${BASH_SOURCE[0]}" -v "\$0" |
     awk "
   /TIP: / {\$1=\"\"; gsub(/«/,\"$col_grn\"); gsub(/»/,\"$col_reset\"); print \"*\" \$0}
   /TIP:> / {\$1=\"\"; print \" $col_ylw\" \$0 \"$col_reset\"}
@@ -533,10 +550,10 @@ initialize_script_data(){
     readonly thisday=$(date "+%Y-%m-%d")
     readonly thisyear=$(date "+%Y")
 
-   if [[ -z $(dirname "$0") ]]; then
+   if [[ -z $(dirname "${BASH_SOURCE[0]}") ]]; then
     # script called without path ; must be in $PATH somewhere
     # shellcheck disable=SC2230
-    script_install_path=$(which "$0")
+    script_install_path=$(which "${BASH_SOURCE[0]}")
     if [[ -n $(readlink "$script_install_path") ]] ; then
       # when script was installed with e.g. basher
       script_install_path=$(readlink "$script_install_path")
@@ -544,14 +561,14 @@ initialize_script_data(){
     script_install_folder=$(dirname "$script_install_path")
   else
     # script called with relative/absolute path
-    script_install_folder=$(dirname "$0")
+    script_install_folder=$(dirname "${BASH_SOURCE[0]}")
     # resolve to absolute path
     script_install_folder=$(cd "$script_install_folder" && pwd)
     if [[ -n "$script_install_folder" ]] ; then
       script_install_path="$script_install_folder/$script_fname"
     else
-      script_install_path="$0"
-      script_install_folder=$(dirname "$0")
+      script_install_path="${BASH_SOURCE[0]}"
+      script_install_folder=$(dirname "${BASH_SOURCE[0]}")
     fi
     if [[ -n $(readlink "$script_install_path") ]] ; then
       # when script was installed with e.g. basher

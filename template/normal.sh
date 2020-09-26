@@ -13,8 +13,8 @@
 script_version="0.0.0"
 # if there is a VERSION.md in this script's folder, it will take priority for version number
 readonly script_author="author@email.com"
-readonly script_prefix=$(basename "$0" .sh)
-readonly script_basename=$(basename "$0")
+readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
+readonly script_basename=$(basename "${BASH_SOURCE[0]}")
 readonly execution_day=$(date "+%Y-%m-%d")
 
 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
@@ -111,8 +111,8 @@ hash(){
 
 prog_modified="??"
 os_name=$(uname -s)
-[[ "$os_name" = "Linux" ]]  && prog_modified=$(stat -c %y    "$0" 2>/dev/null | cut -c1-16) # generic linux
-[[ "$os_name" = "Darwin" ]] && prog_modified=$(stat -f "%Sm" "$0" 2>/dev/null) # for MacOS
+[[ "$os_name" = "Linux" ]]  && prog_modified=$(stat -c %y    "${BASH_SOURCE[0]}" 2>/dev/null | cut -c1-16) # generic linux
+[[ "$os_name" = "Darwin" ]] && prog_modified=$(stat -f "%Sm" "${BASH_SOURCE[0]}" 2>/dev/null) # for MacOS
 
 force=0
 help=0
@@ -264,7 +264,7 @@ show_usage() {
 }
 
 show_tips(){
-  < "$0" grep -v "\$0" \
+  < "${BASH_SOURCE[0]}" grep -v "\$0" \
   | awk "
   /TIP: / {\$1=\"\"; gsub(/«/,\"$col_grn\"); gsub(/»/,\"$col_reset\"); print \"*\" \$0}
   /TIP:> / {\$1=\"\"; print \" $col_ylw\" \$0 \"$col_reset\"}
@@ -381,8 +381,8 @@ parse_options() {
   if expects_single_params ; then
     single_params=$(list_options | grep 'param|1|' | cut -d'|' -f3)
     list_singles=$(echo "$single_params" | xargs)
-    nb_singles=$(echo "$single_params" | wc -w)
-    log "Expect : $nb_singles single parameter(s): $list_singles"
+    single_count=$(echo "$single_params" | wc -w)
+    log "Expect : $single_count single parameter(s): $list_singles"
     [[ $# -eq 0 ]] && die "need the parameter(s) [$list_singles]"
 
     for param in $single_params ; do
@@ -395,23 +395,23 @@ parse_options() {
   else 
     log "No single params to process"
     single_params=""
-    nb_singles=0
+    single_count=0
   fi
 
   if expects_multi_param ; then
     #log "Process: multi param"
-    nb_multis=$(list_options | grep -c 'param|n|')
+    multi_count=$(list_options | grep -c 'param|n|')
     multi_param=$(list_options | grep 'param|n|' | cut -d'|' -f3)
-    log "Expect : $nb_multis multi parameter: $multi_param"
-    [[ $nb_multis -gt 1 ]]  && die "cannot have >1 'multi' parameter: [$multi_param]"
-    [[ $nb_multis -gt 0 ]] && [[ $# -eq 0 ]] && die "need the (multi) parameter [$multi_param]"
+    log "Expect : $multi_count multi parameter: $multi_param"
+    (( multi_count > 1 )) && die "cannot have >1 'multi' parameter: [$multi_param]"
+    (( multi_count > 0 )) && [[ $# -eq 0 ]] && die "need the (multi) parameter [$multi_param]"
     # save the rest of the params in the multi param
     if [[ -n "$*" ]] ; then
       log "Found  : $multi_param=$*"
       eval "$multi_param=( $* )"
     fi
   else 
-    nb_multis=0
+    multi_count=0
     multi_param=""
     [[ $# -gt 0 ]] && die "cannot interpret extra parameters"
   fi
@@ -421,10 +421,10 @@ lookup_script_data(){
     readonly thisday=$(date "+%Y-%m-%d")
     readonly thisyear=$(date "+%Y")
 
-   if [[ -z $(dirname "$0") ]]; then
+   if [[ -z $(dirname "${BASH_SOURCE[0]}") ]]; then
     # script called without path ; must be in $PATH somewhere
     # shellcheck disable=SC2230
-    script_install_path=$(which "$0")
+    script_install_path=$(which "${BASH_SOURCE[0]}")
     if [[ -n $(readlink "$script_install_path") ]] ; then
       # when script was installed with e.g. basher
       script_install_path=$(readlink "$script_install_path") 
@@ -432,14 +432,14 @@ lookup_script_data(){
     script_install_folder=$(dirname "$script_install_path")
   else
     # script called with relative/absolute path
-    script_install_folder=$(dirname "$0")
+    script_install_folder=$(dirname "${BASH_SOURCE[0]}")
     # resolve to absolute path
     script_install_folder=$(cd "$script_install_folder" && pwd)
     if [[ -n "$script_install_folder" ]] ; then
       script_install_path="$script_install_folder/$script_basename"
     else
-      script_install_path="$0"
-      script_install_folder=$(dirname "$0")
+      script_install_path="${BASH_SOURCE[0]}"
+      script_install_folder=$(dirname "${BASH_SOURCE[0]}")
     fi
     if [[ -n $(readlink "$script_install_path") ]] ; then
       # when script was installed with e.g. basher
