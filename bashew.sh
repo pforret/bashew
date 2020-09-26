@@ -198,6 +198,13 @@ main() {
     get_author_data "./$new_name"
     announce "Creating script $new_name ..."
     # shellcheck disable=SC2154
+    for file in template/*.md template/LICENSE template/.gitignore  ; do
+      bfile=$(basename "$file")
+      ((quiet)) || echo -n "$bfile "
+      new_file="./$bfile"
+      rm -f "$new_file"
+      copy_and_replace "$file" "$new_file"
+    done
     copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
     chmod +x "$new_name"
     git add "$new_name"
