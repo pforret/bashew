@@ -11,14 +11,18 @@ bash script / project creator
 
 ## TL;DR
 
-to create a new stand-alone script (just a xyz.sh script), with option parsing, color output
+to create a new stand-alone **SCRIPT** (just a xyz.sh script), with option parsing, color output (cf `1.`)
 
         bashew.sh script
     
-to create a new standalone script project (in a folder, with README)
+to create a new standalone script **PROJECT** (in a folder, with README) (cf `2.`)
 
         bashew.sh project
 
+to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
+
+        bashew init
+        
 ## Installation
 
 * manually
@@ -70,11 +74,6 @@ Example:
     …  Creating project ./tendon_mingle ...
     CHANGELOG.md README.md VERSION.md LICENSE .gitignore tendon_mingle.sh bitbucket-pipelines .github/workflows  
     ✔  next step: 'cd ./tendon_mingle' and start scripting!
-
-
-----
-
-  TBD
   
 ### 3. create a bash script repo, with CI/CD, with README, with tests, with versioning ... 
 
