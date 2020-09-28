@@ -1,36 +1,30 @@
 #!/usr/bin/env bash
 ### ==============================================================================
 ### SO HOW DO YOU PROCEED WITH YOUR SCRIPT?
-### - define the options/parameters and defaults you need in list_options()
-### - define functions your might need by changing/adding to perform_action1()
-### - add binaries your script needs (e.g. ffmpeg) to verify_programs awk (...) wc
-### - implement the different actions you defined in 2. in main()
+### 1. define the options/parameters and defaults you need in list_options()
+### 2. implement the different actions in main() with helper functions
+### 3. implement helper functions you defined in previous step
+### 4. add binaries your script needs (e.g. ffmpeg, jq) to verify_programs
 ### ==============================================================================
 
 ### Created by author_name ( author_username ) on meta_thisday
- 
-# change program version to your own release logic
-script_version="0.0.0"
-# if there is a VERSION.md in this script's folder, it will take priority for version number
+script_version="0.0.0"  # if there is a VERSION.md in this script's folder, it will take priority for version number
 readonly script_author="author@email.com"
-readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
-readonly script_basename=$(basename "${BASH_SOURCE[0]}")
-readonly execution_day=$(date "+%Y-%m-%d")
-
-# run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
-readonly run_as_root=-1
-[[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
-[[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
+readonly script_creation="meta_thisday"
+readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
 
 list_options() {
   ### Change the next lines to reflect which flags/options/parameters you need
-  ### flag:   switch a flag 'on' / no extra parameter / e.g. "-v" for verbose
-  ### flag|<short>|<long>|<description>|<default>
-  ### option: set an option value / 1 extra parameter / e.g. "-l error.log" for logging to file
-  ### option|<short>|<long>|<description>|<default>
+  ### flag:   switch a flag 'on' / no extra parameter
+  ###     flag|<short>|<long>|<description>
+  ###     e.g. "-v" or "--verbose" for verbose output / default is always 'off'
+  ### option: set an option value / 1 extra parameter
+  ###     option|<short>|<long>|<description>|<default>
+  ###     e.g. "-e <extension>" or "--extension <extension>" for a file extension
   ### param:  comes after the options
-  ### param|<type>|<long>|<description>
-  ### where <type> = 1 for single parameters or <type> = n for (last) parameter that can be a list
+  ###     param|<type>|<long>|<description>
+  ###     <type> = 1 for single parameters - e.g. param|1|output expects 1 parameter <output>
+  ###     <type> = n for list parameter    - e.g. param|n|inputs expects <input1> <input2> ... <input99>
 echo -n "
 #commented lines will be filtered
 flag|h|help|show usage
@@ -44,18 +38,6 @@ param|1|action|action to perform: action1/action2/...
 param|1|input|input file
 param|1|output|output file
 " | grep -v '^#'
-}
-
-## Put your helper scripts here
-
-perform_action1(){
-  echo "ACTION 1"
-  # < "$1"  do_stuff > "$2"
-}
-
-perform_action2(){
-  echo "ACTION 2"
-  # < "$1"  do_other_stuff > "$2"
 }
 
 #####################################################################
@@ -85,6 +67,21 @@ main() {
         die "action [$action] not recognized"
     esac
 }
+
+#####################################################################
+## Put your helper scripts here
+#####################################################################
+
+perform_action1(){
+  echo "ACTION 1"
+  # < "$1"  do_stuff > "$2"
+}
+
+perform_action2(){
+  echo "ACTION 2"
+  # < "$1"  do_other_stuff > "$2"
+}
+
 
 #####################################################################
 ################### DO NOT MODIFY BELOW THIS LINE ###################
@@ -418,8 +415,10 @@ parse_options() {
 }
 
 lookup_script_data(){
-    readonly thisday=$(date "+%Y-%m-%d")
-    readonly thisyear=$(date "+%Y")
+  readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
+  readonly script_basename=$(basename "${BASH_SOURCE[0]}")
+  readonly execution_day=$(date "+%Y-%m-%d")
+  readonly execution_year=$(date "+%Y")
 
    if [[ -z $(dirname "${BASH_SOURCE[0]}") ]]; then
     # script called without path ; must be in $PATH somewhere
@@ -487,15 +486,15 @@ import_env_if_any(){
     # shellcheck disable=SC1090
     source "$script_install_folder/.env"
   fi
-  if [[ -f "../.env" ]] ; then
-    log "Read config from [../.env]"
-    source "../.env"
-  fi
   if [[ -f "./.env" ]] ; then
     log "Read config from [./.env]"
+    # shellcheck disable=SC1090
     source "./.env"
   fi
 }
+
+[[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
+[[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
 lookup_script_data
 

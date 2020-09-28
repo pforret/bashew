@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 ### Created by author_name ( author_username ) on meta_thisday
 readonly script_author="author@email.com"
-readonly script_version="0.0.0"
-
-# run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
-readonly run_as_root=-1
+readonly script_created="meta_thisday"
+readonly script_version="0.0.0" # update version number manually
+readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
+readonly script_basename=$(basename "${BASH_SOURCE[0]}")
+readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
 
 #####################################################################
 ## 1. fill in the usage instructions
 #####################################################################
 show_usage() {
   out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
-  out "Updated: ${col_grn}$prog_modified${col_reset}"
+  out "Updated: ${col_grn}$script_modified${col_reset}"
   out "Usage  : $script_basename [-q] [-v] [-t <target>] <param1>"
   out "    -q : 'quiet' (don't show output)"
   out "    -v : 'verbose' (show more output)"
@@ -42,7 +43,7 @@ shift $((OPTIND -1))
 #####################################################################
 main() {
     log "Program: $script_basename $script_version"
-    log "Updated: $prog_modified"
+    log "Updated: $script_modified"
     log "Run as : $USER@$HOSTNAME"
     # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
     verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
@@ -80,16 +81,13 @@ perform_action2(){
 [[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
-readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
-readonly script_basename=$(basename "${BASH_SOURCE[0]}")
-
 set -uo pipefail
 IFS=$'\n\t'
 
-prog_modified="??"
+script_modified="??"
 os_name=$(uname -s)
-[[ "$os_name" = "Linux" ]]  && prog_modified=$(stat -c %y    "${BASH_SOURCE[0]}" 2>/dev/null | cut -c1-16) # generic linux
-[[ "$os_name" = "Darwin" ]] && prog_modified=$(stat -f "%Sm" "${BASH_SOURCE[0]}" 2>/dev/null) # for MacOS
+[[ "$os_name" = "Linux" ]]  && script_modified=$(stat -c %y    "${BASH_SOURCE[0]}" 2>/dev/null | cut -c1-16) # generic linux
+[[ "$os_name" = "Darwin" ]] && script_modified=$(stat -f "%Sm" "${BASH_SOURCE[0]}" 2>/dev/null) # for MacOS
 
 [[ -t 1 ]] && piped=0 || piped=1        # detect if out put is piped
 if [[ $piped -eq 0 ]] ; then
