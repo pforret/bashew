@@ -273,10 +273,10 @@ init_options() {
     init_command=$(list_options \
     | awk '
     BEGIN { FS="|"; OFS=" ";}
-    $1 ~ /flag/   && $5 == "" {print $3"=0; "}
-    $1 ~ /flag/   && $5 != "" {print $3"="$5"; "}
-    $1 ~ /option/ && $5 == "" {print $3"=\" \"; "}
-    $1 ~ /option/ && $5 != "" {print $3"="$5"; "}
+    $1 ~ /flag/   && $5 == "" {print $3 "=0; "}
+    $1 ~ /flag/   && $5 != "" {print $3 "=\"" $5 "\"; "}
+    $1 ~ /option/ && $5 == "" {print $3 "=\"\"; "}
+    $1 ~ /option/ && $5 != "" {print $3 "=\"" $5 "\"; "}
     ')
     if [[ -n "$init_command" ]] ; then
         #log "init_options: $(echo "$init_command" | wc -l) options/flags initialised"
