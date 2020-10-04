@@ -2,7 +2,6 @@
 ![Bash CI](https://github.com/pforret/bashew/workflows/Bash%20CI/badge.svg) 
 ![Shellcheck CI](https://github.com/pforret/bashew/workflows/Shellcheck%20CI/badge.svg)
 ![version](https://img.shields.io/github/v/release/pforret/bashew)
-![activity](https://img.shields.io/github/commit-activity/m/pforret/bashew)
 
 # bashew
 
