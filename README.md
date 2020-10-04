@@ -1,3 +1,4 @@
+[![basher install](https://img.shields.io/badge/basher-install-white?logo=gnu-bash&style=flat)](https://basher.gitparade.com/package/)
 ![Bash CI](https://github.com/pforret/bashew/workflows/Bash%20CI/badge.svg) 
 ![Shellcheck CI](https://github.com/pforret/bashew/workflows/Shellcheck%20CI/badge.svg)
 ![version](https://img.shields.io/github/v/release/pforret/bashew)
