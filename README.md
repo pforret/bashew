@@ -5,7 +5,7 @@
 
 # bashew
 
-![Bashew Logo](assets/bashew.png)
+![Bashew Logo](assets/bashew.jpg)
 
 bash script / project creator
 
