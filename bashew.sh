@@ -208,14 +208,23 @@ main() {
     copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
     chmod +x "$new_name"
     git add "$new_name"
+    alt_dir=$(dirname "$new_name")
+    alt_base=$(basename "$new_name" .sh)
+    alt_name="$alt_dir/$alt_base"
+    if [[ ! "$alt_name" == "$new_name" ]] ; then
+      # create a "do_this" alias for "do_this.sh"
+      ln -s "$new_name" "$alt_name"
+      git add "$alt_name"
+    fi
     announce "Now cleaning up unnecessary bashew files ..."
     delete_folder template
     delete_folder assets
     delete_folder .tmp
     delete_folder log
     log "Delete script [bashew.sh] ..."
-    ( sleep 1 ; rm bashew.sh ) & # delete will happen after the script is fisnished
-    announce "Script $new_name created, repo is ready for git commit!"
+    ( sleep 1 ; rm -f bashew.sh bashew ) & # delete will happen after the script is finished
+    success "script $new_name created"
+    success "proceed with: git commit -a -m 'after bashew init' && git push"
     ;;
 
   update)
