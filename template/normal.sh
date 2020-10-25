@@ -149,7 +149,11 @@ out() { ((quiet)) || printf '%b\n' "$*";  }
 
 progress() {
   ((quiet)) || (
-    ((piped)) && out "$*" || printf "... %-${wprogress}b\r" "$*                                             ";
+    if is_set ${piped:-0} ; then
+      out "$*"
+    else
+      printf "... %-${wprogress}b\r" "$*                                             ";
+    fi
   )
 }
 #TIP: use «progress» to show one line of progress that will be overwritten by the next output
