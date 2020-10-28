@@ -128,7 +128,7 @@ main() {
   log "Updated: $script_modified"
   log "Run as : $USER@$HOSTNAME"
   # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
-  verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
+  verify_programs tput uname git
 
   action=$(lcase "$action")
   case $action in
@@ -190,10 +190,10 @@ main() {
     ;;
 
   init)
-    repo_name=$(basename "$script_install_folder" .sh)
+    repo_name=$(basename "$script_install_path" .sh)
     [[ "$repo_name" == "bashew" ]] && die "You can only run the '$script_fname init' of a *new* repo, derived from the bashew template on Github."
     [[ ! -d ".git" ]] && die "You can only run '$script_fname init' in the root of your repo"
-    [[ ! -d "template" ]] && die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from bashew?"
+    [[ ! -d "template" ]] && die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from pforret/bashew?"
     new_name="$repo_name.sh"
     get_author_data "./$new_name"
     announce "Creating script $new_name ..."

@@ -4,7 +4,7 @@
 ### 1. define the options/parameters and defaults you need in list_options()
 ### 2. implement the different actions in main() with helper functions
 ### 3. implement helper functions you defined in previous step
-### 4. add binaries your script needs (e.g. ffmpeg, jq) to verify_programs
+### 4. add binaries your script needs (e.g. ffmpeg, jq) to require_binaries
 ### ==============================================================================
 
 ### Created by author_name ( author_username ) on meta_thisday
@@ -24,6 +24,7 @@ list_options() {
   ### param:  comes after the options
   ###     param|<type>|<long>|<description>
   ###     <type> = 1 for single parameters - e.g. param|1|output expects 1 parameter <output>
+  ###     <type> = ? for optional parameters - e.g. param|1|output expects 1 parameter <output>
   ###     <type> = n for list parameter    - e.g. param|n|inputs expects <input1> <input2> ... <input99>
 echo -n "
 #commented lines will be filtered
@@ -34,9 +35,8 @@ flag|f|force|do not ask for confirmation (always yes)
 option|l|log_dir|folder for log files |log
 option|t|tmp_dir|folder for temp files|.tmp
 param|1|action|action to perform: action1/action2/...
-# there can only be 1 param|n and it should be the last
-param|1|input|input file
-param|1|output|output file
+param|?|input|input file
+param|?|output|output file
 " | grep -v '^#'
 }
 
@@ -48,9 +48,8 @@ main() {
     log "Program: $script_basename $script_version"
     log "Updated: $prog_modified"
     log "Run as : $USER@$HOSTNAME"
-    # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
-    verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
-    prep_log_and_temp_dir
+    # add programs that need to be installed, like: tar, wget, ffmpeg, rsync, convert, curl ...
+    require_binaries tput uname
 
     action=$(lower_case "$action")
     case $action in
@@ -100,7 +99,7 @@ hash(){
   else
     # macos
     md5 | cut -c1-"$length"
-  fi 
+  fi
 }
 #TIP: use «hash» to create short unique values of fixed length based on longer inputs
 #TIP:> url_contents="$domain.$(echo $url | hash 8).html"
@@ -212,7 +211,7 @@ trap "die \"ERROR \$? after \$SECONDS seconds \n\
 'NR == lineno {print \"\${error_prefix} from line \" lineno \" : \" \$0}')" INT TERM EXIT
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 # trap 'echo ‘$BASH_COMMAND’ failed with error code $?' ERR
-safe_exit() { 
+safe_exit() {
   [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
   trap - INT TERM EXIT
   log "$script_basename finished after $SECONDS seconds"
@@ -288,9 +287,9 @@ init_options() {
    fi
 }
 
-verify_programs(){
+require_binaries(){
   os_name=$(uname -s)
-  os_version=$(uname -v)
+  os_version=$(uname -sprm)
   log "Running: on $os_name ($os_version)"
   list_programs=$(echo "$*" | sort -u |  tr "\n" " ")
   log "Verify : $list_programs"
@@ -321,9 +320,17 @@ folder_prep(){
 expects_single_params(){
   list_options | grep 'param|1|' > /dev/null
   }
+expects_optional_params(){
+  list_options | grep 'param|?|' > /dev/null
+  }
 expects_multi_param(){
   list_options | grep 'param|n|' > /dev/null
   }
+
+count_words(){
+  wc -w \
+  | awk '{ gsub(/ /,""); print}'
+}
 
 parse_options() {
     if [[ $# -eq 0 ]] ; then
@@ -331,9 +338,8 @@ parse_options() {
     fi
 
     ## first process all the -x --xxxx flags and options
-    #set -x
     while true; do
-      # flag <flag> is savec as $flag = 0/1
+      # flag <flag> is saved as $flag = 0/1
       # option <option> is saved as $option
       if [[ $# -eq 0 ]] ; then
         ## all parameters processed
@@ -382,21 +388,37 @@ parse_options() {
   if expects_single_params ; then
     single_params=$(list_options | grep 'param|1|' | cut -d'|' -f3)
     list_singles=$(echo "$single_params" | xargs)
-    single_count=$(echo "$single_params" | wc -w)
+    single_count=$(echo "$single_params" | count_words)
     log "Expect : $single_count single parameter(s): $list_singles"
     [[ $# -eq 0 ]] && die "need the parameter(s) [$list_singles]"
 
     for param in $single_params ; do
       [[ $# -eq 0 ]] && die "need parameter [$param]"
       [[ -z "$1" ]]  && die "need parameter [$param]"
-      log "Found  : $param=$1"
+      log "Assign : $param=$1"
       eval "$param=\"$1\""
       shift
     done
-  else 
+  else
     log "No single params to process"
     single_params=""
     single_count=0
+  fi
+
+  if expects_optional_params ; then
+    optional_params=$(list_options | grep 'param|?|' | cut -d'|' -f3)
+    optional_count=$(echo "$optional_params" | count_words)
+    log "Expect : $optional_count optional parameter(s): $(echo "$optional_params" | xargs)"
+
+    for param in $optional_params ; do
+      log "Assign : $param=${1:-}"
+      eval "$param=\"${1:-}\""
+      shift
+    done
+  else
+    log "No optional params to process"
+    optional_params=""
+    optional_count=0
   fi
 
   if expects_multi_param ; then
@@ -408,10 +430,10 @@ parse_options() {
     (( multi_count > 0 )) && [[ $# -eq 0 ]] && die "need the (multi) parameter [$multi_param]"
     # save the rest of the params in the multi param
     if [[ -n "$*" ]] ; then
-      log "Found  : $multi_param=$*"
+      log "Assign : $multi_param=$*"
       eval "$multi_param=( $* )"
     fi
-  else 
+  else
     multi_count=0
     multi_param=""
     [[ $# -gt 0 ]] && die "cannot interpret extra parameters"
@@ -430,7 +452,7 @@ lookup_script_data(){
     script_install_path=$(which "${BASH_SOURCE[0]}")
     if [[ -n $(readlink "$script_install_path") ]] ; then
       # when script was installed with e.g. basher
-      script_install_path=$(readlink "$script_install_path") 
+      script_install_path=$(readlink "$script_install_path")
     fi
     script_install_folder=$(dirname "$script_install_path")
   else
@@ -446,7 +468,7 @@ lookup_script_data(){
     fi
     if [[ -n $(readlink "$script_install_path") ]] ; then
       # when script was installed with e.g. basher
-      script_install_path=$(readlink "$script_install_path") 
+      script_install_path=$(readlink "$script_install_path")
       script_install_folder=$(dirname "$script_install_path")
     fi
   fi
@@ -510,6 +532,9 @@ import_env_if_any
 
 # overwrite with specified options if any
 parse_options "$@"
+
+# clean up log and temp folder
+prep_log_and_temp_dir
 
 # run main program
 main
