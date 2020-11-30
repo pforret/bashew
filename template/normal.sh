@@ -446,34 +446,22 @@ lookup_script_data(){
   readonly execution_day=$(date "+%Y-%m-%d")
   readonly execution_year=$(date "+%Y")
 
-   if [[ -z $(dirname "${BASH_SOURCE[0]}") ]]; then
-    # script called without path ; must be in $PATH somewhere
-    # shellcheck disable=SC2230
-    script_install_path=$(which "${BASH_SOURCE[0]}")
-    if [[ -n $(readlink "$script_install_path") ]] ; then
-      # when script was installed with e.g. basher
-      script_install_path=$(readlink "$script_install_path")
-    fi
-    script_install_folder=$(dirname "$script_install_path")
-  else
-    # script called with relative/absolute path
-    script_install_folder=$(dirname "${BASH_SOURCE[0]}")
-    # resolve to absolute path
-    script_install_folder=$(cd "$script_install_folder" && pwd)
-    if [[ -n "$script_install_folder" ]] ; then
-      script_install_path="$script_install_folder/$script_basename"
-    else
-      script_install_path="${BASH_SOURCE[0]}"
-      script_install_folder=$(dirname "${BASH_SOURCE[0]}")
-    fi
-    if [[ -n $(readlink "$script_install_path") ]] ; then
-      # when script was installed with e.g. basher
-      script_install_path=$(readlink "$script_install_path")
-      script_install_folder=$(dirname "$script_install_path")
-    fi
-  fi
-  log "Executable: [$script_install_path]"
+  # cf https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
+  script_install_path="${BASH_SOURCE[0]}"
+  while [ -h "$script_install_path" ]; do
+    # resolve symbolic links
+    script_install_folder="$( cd -P "$( dirname "$script_install_path" )" >/dev/null 2>&1 && pwd )"
+    script_install_path="$(readlink "$script_install_path")"
+    [[ "$script_install_path" != /* ]] && script_install_path="$script_install_folder/$script_install_path"
+  done
+
+  log "Executing : [$script_install_path]"
   log "In folder : [$script_install_folder]"
+
+  # $script_install_folder  = [/Users/<username>/.basher/cellar/packages/pforret/<script>]
+  # $script_install_path    = [/Users/<username>/.basher/cellar/packages/pforret/bashew/<script>]
+  # $script_basename        = [<script>.sh]
+  # $script_prefix          = [<script>]
 
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
   if git status >/dev/null; then

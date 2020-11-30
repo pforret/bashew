@@ -88,8 +88,8 @@ copy_and_replace() {
     | sed "s/author@email.com/$author_email/g" \
     | sed "s/package_name/$clean_name/g" \
     | sed "s/package_description/$new_description/g" \
-    | sed "s/meta_thisday/$thisday/g" \
-    | sed "s/meta_thisyear/$thisyear/g" \
+    | sed "s/meta_thisday/$execution_day/g" \
+    | sed "s/meta_thisyear/$execution_year/g" \
     > "$output"
 }
 
@@ -190,7 +190,7 @@ main() {
     ;;
 
   init)
-    repo_name=$(basename "$script_install_path" .sh)
+    repo_name=$(basename "$script_install_folder")
     [[ "$repo_name" == "bashew" ]] && die "You can only run the '$script_fname init' of a *new* repo, derived from the bashew template on Github."
     [[ ! -d ".git" ]] && die "You can only run '$script_fname init' in the root of your repo"
     [[ ! -d "template" ]] && die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from pforret/bashew?"
@@ -233,6 +233,29 @@ main() {
     # shellcheck disable=SC2164
     popd
     ;;
+
+  debug)
+    out "print_with_out=yes"
+    log "print_with_log=yes"
+    announce "print_with_announce=yes"
+    success "print_with_success=yes"
+    progress "print_with_progress=yes"
+    echo ""
+    alert "print_with_alert=yes"
+
+    hash3=$(echo "1234567890" | hash 3)
+    hash6=$(echo "1234567890" | hash)
+    out "hash3=$hash3"
+    out "hash6=$hash6"
+    out "script_fname=$script_fname"
+    out "script_author=$script_author"
+    out "escape1 = $(escape "/forward/slash")"
+    out "escape2 = $(escape '\backward\slash')"
+    out "lowercase = $(lcase 'AbCdEfGhIjKlMnÔû')"
+    out "uppercase = $(ucase 'AbCdEfGhIjKlMnÔû')"
+    is_set "$force" && out "force=$force (true)" || out "force=$force (false)"
+    ;;
+
     *)
 
     die "param [$action] not recognized"
@@ -247,14 +270,16 @@ main() {
 # removed -e because it made basic [[ testing ]] difficult
 set -uo pipefail
 IFS=$'\n\t'
-hash() {
+# shellcheck disable=SC2120
+hash(){
+  length=${1:-6}
   # shellcheck disable=SC2230
-  if [[ -n $(which md5sum) ]]; then
+  if [[ -n $(which md5sum) ]] ; then
     # regular linux
-    md5sum | cut -c1-6
+    md5sum | cut -c1-"$length"
   else
     # macos
-    md5 | cut -c1-6
+    md5 | cut -c1-"$length"
   fi
 }
 
@@ -565,37 +590,28 @@ tmpfile=""
 logfile=""
 
 initialize_script_data(){
-    readonly thisday=$(date "+%Y-%m-%d")
-    readonly thisyear=$(date "+%Y")
+    readonly execution_day=$(date "+%Y-%m-%d")
+    readonly execution_year=$(date "+%Y")
 
-   if [[ -z $(dirname "${BASH_SOURCE[0]}") ]]; then
-    # script called without path ; must be in $PATH somewhere
-    # shellcheck disable=SC2230
-    script_install_path=$(which "${BASH_SOURCE[0]}")
-    if [[ -n $(readlink "$script_install_path") ]] ; then
-      # when script was installed with e.g. basher
-      script_install_path=$(readlink "$script_install_path")
-    fi
-    script_install_folder=$(dirname "$script_install_path")
-  else
-    # script called with relative/absolute path
-    script_install_folder=$(dirname "${BASH_SOURCE[0]}")
-    # resolve to absolute path
-    script_install_folder=$(cd "$script_install_folder" && pwd)
-    if [[ -n "$script_install_folder" ]] ; then
-      script_install_path="$script_install_folder/$script_fname"
-    else
-      script_install_path="${BASH_SOURCE[0]}"
-      script_install_folder=$(dirname "${BASH_SOURCE[0]}")
-    fi
-    if [[ -n $(readlink "$script_install_path") ]] ; then
-      # when script was installed with e.g. basher
-      script_install_path=$(readlink "$script_install_path")
-      script_install_folder=$(dirname "$script_install_path")
-    fi
-  fi
-  log "Executable: [$script_install_path]"
+  # cf https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
+  script_install_path="${BASH_SOURCE[0]}"
+  script_install_folder=$(dirname "$script_install_path")
+  log "Start with $script_install_path"
+  while [ -h "$script_install_path" ]; do
+    # resolve symbolic links
+    script_install_folder="$( cd -P "$( dirname "$script_install_path" )" >/dev/null 2>&1 && pwd )"
+    script_install_path="$(readlink "$script_install_path")"
+    [[ "$script_install_path" != /* ]] && script_install_path="$script_install_folder/$script_install_path"
+  done
+  script_install_folder=$(cd -P "$script_install_folder" >/dev/null 2>&1 && pwd)
+
+  log "Executing : [$script_install_path]"
   log "In folder : [$script_install_folder]"
+
+  # $script_install_folder  = [/Users/<username>/.basher/cellar/packages/pforret/bashew]
+  # $script_install_path    = [/Users/<username>/.basher/cellar/packages/pforret/bashew/bashew]
+  # $script_basename        = [bashew.sh]
+  # $script_prefix          = [bashew]
 
   script_version=0.0.0
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
@@ -610,7 +626,7 @@ prep_log_and_temp_dir() {
   tmpfile=""
   if [[ -n "${tmpd:-}" ]]; then
     folder_prep "$tmpd" 1
-    tmpfile=$(mktemp "$tmpd/$thisday.XXXXXX")
+    tmpfile=$(mktemp "$tmpd/$execution_day.XXXXXX")
     log "Tmpfile: $tmpfile"
     # you can use this temporary file in your program
     # it will be deleted automatically when the program ends
@@ -618,7 +634,7 @@ prep_log_and_temp_dir() {
   logfile=""
   if [[ -n "${logd:-}" ]]; then
     folder_prep "$logd" 7
-    logfile=$logd/$script_name.$thisday.log
+    logfile=$logd/$script_name.$execution_day.log
     log "Logfile: $logfile"
     echo "$(date '+%H:%M:%S') | [$script_fname] $script_version started" >>"$logfile"
   fi
