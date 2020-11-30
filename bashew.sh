@@ -253,6 +253,7 @@ main() {
     out "escape2 = $(escape '\backward\slash')"
     out "lowercase = $(lcase 'AbCdEfGhIjKlMnÔû')"
     out "uppercase = $(ucase 'AbCdEfGhIjKlMnÔû')"
+    # shellcheck disable=SC2015
     is_set "$force" && out "force=$force (true)" || out "force=$force (false)"
     ;;
 
