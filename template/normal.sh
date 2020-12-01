@@ -48,8 +48,8 @@ main() {
     log "Program: $script_basename $script_version"
     log "Updated: $prog_modified"
     log "Run as : $USER@$HOSTNAME"
-    # add programs that need to be installed, like: tar, wget, ffmpeg, rsync, convert, curl ...
-    require_binaries tput uname
+    # add programs that need to be installed, like: tar, wget, ffmpeg, rsync, convert, curl, gawk ...
+    require_binaries tput uname awk
 
     action=$(lower_case "$action")
     case $action in
@@ -183,6 +183,22 @@ lower_case()   { echo "$*" | awk '{print tolower($0)}' ; }
 upper_case()   { echo "$*" | awk '{print toupper($0)}' ; }
 #TIP: use «lower_case» and «upper_case» to convert to upper/lower case
 #TIP:> param=$(lower_case $param)
+slugify()     {
+  lower_case "$*" \
+  | tr \
+    'àáâäæãåāçćčèéêëēėęîïííīįìłñńôoöòóœøōõßśšûüùúūÿžźż' \
+    'aaaaaaaaccceeeeeeeiiiiiiilnnooooooooosssuuuuuyzzz' \
+  | awk '{
+    gsub(/[^0-9a-z ]/,"");
+    gsub(/^\s+/,"");
+    gsub(/^s+$/,"");
+    gsub(" ","-");
+    print;
+    }' \
+  | cut -c1-50
+  }
+#TIP: use «slugify» to convert a word/sentence with diacritcs, special chars in a string to use in e.g. a filename
+#TIP:> filename=temp.$(slugify $input_from_user).txt
 
 confirm() { is_set $force && return 0; read -r -p "$1 [y/N] " -n 1; echo " "; [[ $REPLY =~ ^[Yy]$ ]];}
 #TIP: use «confirm» for interactive confirmation before doing something
@@ -448,6 +464,7 @@ lookup_script_data(){
 
   # cf https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
   script_install_path="${BASH_SOURCE[0]}"
+  script_install_folder="$( cd -P "$( dirname "$script_install_path" )" >/dev/null 2>&1 && pwd )"
   while [ -h "$script_install_path" ]; do
     # resolve symbolic links
     script_install_folder="$( cd -P "$( dirname "$script_install_path" )" >/dev/null 2>&1 && pwd )"
