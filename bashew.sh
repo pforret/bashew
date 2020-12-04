@@ -284,11 +284,6 @@ hash(){
   fi
 }
 
-script_modified="??"
-os_uname=$(uname -s)
-[[ "$os_uname" == "Linux" ]] && script_modified=$(stat -c %y "${BASH_SOURCE[0]}" 2>/dev/null | cut -c1-16) # generic linux
-[[ "$os_uname" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "${BASH_SOURCE[0]}" 2>/dev/null)          # for MacOS
-
 force=0
 help=0
 
@@ -605,6 +600,11 @@ initialize_script_data(){
     [[ "$script_install_path" != /* ]] && script_install_path="$script_install_folder/$script_install_path"
   done
   script_install_folder=$(cd -P "$script_install_folder" >/dev/null 2>&1 && pwd)
+
+  script_modified="??"
+  os_uname=$(uname -s)
+  [[ "$os_uname" == "Linux" ]]  && script_modified=$(stat -c "%y"  "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
+  [[ "$os_uname" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
 
   log "Executing : [$script_install_path]"
   log "In folder : [$script_install_folder]"
