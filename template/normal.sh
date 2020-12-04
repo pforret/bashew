@@ -8,9 +8,9 @@
 ### ==============================================================================
 
 ### Created by author_name ( author_username ) on meta_thisday
-script_version="0.0.0"  # if there is a VERSION.md in this script's folder, it will take priority for version number
+script_version="1.1.1"  # if there is a VERSION.md in this script's folder, it will take priority for version number
 readonly script_author="author@email.com"
-readonly script_creation="meta_thisday"
+readonly script_created="meta_thisday"
 readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
 
 list_options() {
@@ -46,10 +46,12 @@ param|?|output|output file
 
 main() {
     log "Program: $script_basename $script_version"
-    log "Updated: $prog_modified"
+    log "Updated: $script_modified"
     log "Run as : $USER@$HOSTNAME"
     # add programs that need to be installed, like: tar, wget, ffmpeg, rsync, convert, curl, gawk ...
     require_binaries tput uname awk
+    log_to_file "[$script_basename] $script_version started"
+    time_started=$(date '+%s')
 
     action=$(lower_case "$action")
     case $action in
@@ -65,6 +67,9 @@ main() {
     *)
         die "action [$action] not recognized"
     esac
+    time_ended=$(date '+%s')
+    time_elapsed=$((time_ended - time_started))
+    log_to_file "[$script_basename] ended after $time_elapsed secs"
 }
 
 #####################################################################
@@ -104,18 +109,11 @@ hash(){
 #TIP: use «hash» to create short unique values of fixed length based on longer inputs
 #TIP:> url_contents="$domain.$(echo $url | hash 8).html"
 
-
-prog_modified="??"
-os_name=$(uname -s)
-[[ "$os_name" = "Linux" ]]  && prog_modified=$(stat -c %y    "${BASH_SOURCE[0]}" 2>/dev/null | cut -c1-16) # generic linux
-[[ "$os_name" = "Darwin" ]] && prog_modified=$(stat -f "%Sm" "${BASH_SOURCE[0]}" 2>/dev/null) # for MacOS
-
 force=0
 help=0
 
 ## ----------- TERMINAL OUTPUT STUFF
 
-[[ -t 1 ]] && piped=0 || piped=1        # detect if out put is piped
 verbose=0
 #to enable verbose even before option parsing
 [[ $# -gt 0 ]] && [[ $1 == "-v" ]] && verbose=1
@@ -123,22 +121,21 @@ quiet=0
 #to enable quiet even before option parsing
 [[ $# -gt 0 ]] && [[ $1 == "-q" ]] && quiet=1
 
-[[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
-
-
+[[ -t 1 ]] && piped=0 || piped=1        # detect if output is piped
 if [[ $piped -eq 0 ]] ; then
   col_reset="\033[0m" ; col_red="\033[1;31m" ; col_grn="\033[1;32m" ; col_ylw="\033[1;33m"
 else
   col_reset="" ; col_red="" ; col_grn="" ; col_ylw=""
 fi
 
+[[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
 if [[ $unicode -gt 0 ]] ; then
   char_succ="✔" ; char_fail="✖" ; char_alrt="➨" ; char_wait="…"
 else
   char_succ="OK " ; char_fail="!! " ; char_alrt="?? " ; char_wait="..."
 fi
 
-readonly nbcols=$(tput cols || echo 80)
+readonly nbcols=$(tput cols 2>/dev/null || echo 80)
 #readonly nbrows=$(tput lines)
 readonly wprogress=$((nbcols - 5))
 
@@ -179,11 +176,16 @@ log()   { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2 ; }
 #TIP: use «log» to show information that will only be visible when -v is specified
 #TIP:> log "input file: [$inputname] - [$inputsize] MB"
 
+log_to_file(){
+  echo "$(date '+%H:%M:%S') | $*" >> "$log_file"
+}
+
 lower_case()   { echo "$*" | awk '{print tolower($0)}' ; }
 upper_case()   { echo "$*" | awk '{print toupper($0)}' ; }
 #TIP: use «lower_case» and «upper_case» to convert to upper/lower case
 #TIP:> param=$(lower_case $param)
 slugify()     {
+    # shellcheck disable=SC2020
   lower_case "$*" \
   | tr \
     'àáâäæãåāçćčèéêëēėęîïííīįìłñńôoöòóœøōõßśšûüùúūÿžźż' \
@@ -197,7 +199,7 @@ slugify()     {
     }' \
   | cut -c1-50
   }
-#TIP: use «slugify» to convert a word/sentence with diacritcs, special chars in a string to use in e.g. a filename
+#TIP: use «slugify» to convert a word/sentence with diacritcs, spaces, special chars in a string to use in e.g. a filename
 #TIP:> filename=temp.$(slugify $input_from_user).txt
 
 confirm() { is_set $force && return 0; read -r -p "$1 [y/N] " -n 1; echo " "; [[ $REPLY =~ ^[Yy]$ ]];}
@@ -247,7 +249,7 @@ is_dir()  { [[ -d "$1" ]] ; }
 
 show_usage() {
   out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
-  out "Updated: ${col_grn}$prog_modified${col_reset}"
+  out "Updated: ${col_grn}$script_modified${col_reset}"
 
   echo -n "Usage: $script_basename"
    list_options \
@@ -298,7 +300,6 @@ init_options() {
     $1 ~ /option/ && $5 != "" {print $3 "=\"" $5 "\"; "}
     ')
     if [[ -n "$init_command" ]] ; then
-        #log "init_options: $(echo "$init_command" | wc -l) options/flags initialised"
         eval "$init_command"
    fi
 }
@@ -472,6 +473,11 @@ lookup_script_data(){
     [[ "$script_install_path" != /* ]] && script_install_path="$script_install_folder/$script_install_path"
   done
 
+  script_modified="??"
+  os_name=$(uname -s)
+  [[ "$os_name" = "Linux" ]]  && script_modified=$(stat -c %y    "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
+  [[ "$os_name" = "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null) # for MacOS
+
   log "Executing : [$script_install_path]"
   log "In folder : [$script_install_folder]"
 
@@ -481,7 +487,7 @@ lookup_script_data(){
   # $script_prefix          = [<script>]
 
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
-  if git status >/dev/null; then
+  if git status >/dev/null 2>&1 ; then
     readonly in_git_repo=1
   else
     readonly in_git_repo=0
@@ -504,7 +510,6 @@ prep_log_and_temp_dir(){
     folder_prep "$log_dir" 7
     log_file=$log_dir/$script_prefix.$execution_day.log
     log "log_file: $log_file"
-    echo "$(date '+%H:%M:%S') | [$script_basename] $script_version started" >> "$log_file"
   fi
 }
 

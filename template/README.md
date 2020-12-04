@@ -1,3 +1,5 @@
+![bash_unit CI](https://github.com/author_username/package_name/workflows/bash_unit%20CI/badge.svg)
+![Shellcheck CI](https://github.com/author_username/package_name/workflows/Shellcheck%20CI/badge.svg)
 ![GH Language](https://img.shields.io/github/languages/top/author_username/package_name)
 ![GH stars](https://img.shields.io/github/stars/author_username/package_name)
 ![GH tag](https://img.shields.io/github/v/tag/author_username/package_name)
