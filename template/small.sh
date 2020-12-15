@@ -2,11 +2,13 @@
 ### Created by author_name ( author_username ) on meta_thisday
 readonly script_author="author@email.com"
 readonly script_created="meta_thisday"
-readonly script_version="0.0.0" # update version number manually
 readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
 readonly script_basename=$(basename "${BASH_SOURCE[0]}")
 readonly script_folder=$(dirname "${BASH_SOURCE[0]}")
 readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
+
+script_version="0.0.0" # update version number manually
+[[ -f "$script_folder/VERSION.md" ]] && script_version=$(cat "$script_folder/VERSION.md")
 
 #####################################################################
 ## 1. fill in the usage instructions
@@ -44,7 +46,7 @@ shift $((OPTIND -1))
 ## 3. process script parameters
 #####################################################################
 main() {
-    log "Program: $script_basename $script_version"
+    out "Program: $script_basename $script_version"
     log "Created: $script_created"
     log "Updated: $script_modified"
     log "Run as : $USER@$HOSTNAME"
@@ -84,8 +86,7 @@ perform_action2(){
 [[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
-# cf https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
-set -Eeuo pipefail
+set -uo pipefail
 IFS=$'\n\t'
 
 script_modified="??"
