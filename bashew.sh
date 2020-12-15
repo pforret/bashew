@@ -160,7 +160,7 @@ main() {
       mkdir "$new_name"
       template_folder="$script_install_folder/template"
       ## first do all files that can change
-      for file in "$template_folder"/*.md "$template_folder/LICENSE" "$template_folder"/.gitignore  ; do
+      for file in "$template_folder"/*.md "$template_folder/LICENSE" "$template_folder"/.gitignore "$template_folder"/.env.example  ; do
         bfile=$(basename "$file")
         ((quiet)) || echo -n "$bfile "
         new_file="$new_name/$bfile"
@@ -198,7 +198,7 @@ main() {
     get_author_data "./$new_name"
     announce "Creating script $new_name ..."
     # shellcheck disable=SC2154
-    for file in template/*.md template/LICENSE template/.gitignore  ; do
+    for file in template/*.md template/LICENSE template/.gitignore template/.gitignore  ; do
       bfile=$(basename "$file")
       ((quiet)) || echo -n "$bfile "
       new_file="./$bfile"

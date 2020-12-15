@@ -32,12 +32,15 @@ flag|h|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
-option|l|log_dir|folder for log files |log
+option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|.tmp
-param|1|action|action to perform: action1/action2/...
+option|w|width|width to use|800
+param|1|action|action to perform: analyze/convert
 param|?|input|input file
 param|?|output|output file
-" | grep -v '^#'
+" \
+| grep -v '^#' \
+| sort
 }
 
 #####################################################################
@@ -46,6 +49,7 @@ param|?|output|output file
 
 main() {
     log "Program: $script_basename $script_version"
+    log "Created: $script_created"
     log "Updated: $script_modified"
     log "Run as : $USER@$HOSTNAME"
     # add programs that need to be installed, like: tar, wget, ffmpeg, rsync, convert, curl, gawk ...
@@ -55,13 +59,17 @@ main() {
 
     action=$(lower_case "$action")
     case $action in
-    action1 )
+    analyze )
+        #TIP: use «$script_prefix analyze» to analyze an input file
+        #TIP:> $script_prefix analyze input.txt
         # shellcheck disable=SC2154
-        perform_action1 "$input" "$output"
+        do_analyze "$input" 
         ;;
 
-    action2 )
-        perform_action2 "$input" "$output"
+    convert )
+        #TIP: use «$script_prefix convert» to convert input into output
+        #TIP:> $script_prefix convert input.txt output.pdf
+        do_convert "$input" "$output"
         ;;
 
     *)
@@ -70,20 +78,22 @@ main() {
     time_ended=$(date '+%s')
     time_elapsed=$((time_ended - time_started))
     log_to_file "[$script_basename] ended after $time_elapsed secs"
+    #TIP: >>> bash script created with «pforret/bashew»
+    #TIP: >>> for developers, also check «pforret/setver»
 }
 
 #####################################################################
 ## Put your helper scripts here
 #####################################################################
 
-perform_action1(){
-  echo "ACTION 1"
-  # < "$1"  do_stuff > "$2"
+do_analyze(){
+  log_to_file "Analyze [$input]"
+  # < "$1"  do_analysis_stuff
 }
 
-perform_action2(){
-  echo "ACTION 2"
-  # < "$1"  do_other_stuff > "$2"
+do_convert(){
+  log_to_file "Convert [$input] -> [$output]"
+  # < "$1"  do_conversion_stuff > "$2"
 }
 
 
@@ -106,8 +116,6 @@ hash(){
     md5 | cut -c1-"$length"
   fi
 }
-#TIP: use «hash» to create short unique values of fixed length based on longer inputs
-#TIP:> url_contents="$domain.$(echo $url | hash 8).html"
 
 force=0
 help=0
@@ -140,8 +148,6 @@ readonly nbcols=$(tput cols 2>/dev/null || echo 80)
 readonly wprogress=$((nbcols - 5))
 
 out() { ((quiet)) || printf '%b\n' "$*";  }
-#TIP: use «out» to show any kind of output, except when option --quiet is specified
-#TIP:> out "User is [$USER]"
 
 progress() {
   ((quiet)) || (
@@ -152,29 +158,18 @@ progress() {
     fi
   )
 }
-#TIP: use «progress» to show one line of progress that will be overwritten by the next output
-#TIP:> progress "Now generating file $nb of $total ..."
 
 die()     { tput bel; out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2; safe_exit; }
+
 fail()    { tput bel; out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2; safe_exit; }
-#TIP: use «die» to show error message and exit program
-#TIP:> if [[ ! -f $output ]] ; then ; die "could not create output" ; fi
 
 alert()   { out "${col_red}${char_alrt}${col_reset}: $*" >&2 ; }                       # print error and continue
-#TIP: use «alert» to show alert/warning message but continue
-#TIP:> if [[ ! -f $output ]] ; then ; alert "could not create output" ; fi
 
 success() { out "${col_grn}${char_succ}${col_reset}  $*" ; }
-#TIP: use «success» to show success message but continue
-#TIP:> if [[ -f $output ]] ; then ; success "output was created!" ; fi
 
 announce(){ out "${col_grn}${char_wait}${col_reset}  $*"; sleep 1 ; }
-#TIP: use «announce» to show the start of a task
-#TIP:> announce "now generating the reports"
 
 log()   { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2 ; }
-#TIP: use «log» to show information that will only be visible when -v is specified
-#TIP:> log "input file: [$inputname] - [$inputsize] MB"
 
 log_to_file(){
   echo "$(date '+%H:%M:%S') | $*" >> "$log_file"
@@ -182,8 +177,7 @@ log_to_file(){
 
 lower_case()   { echo "$*" | awk '{print tolower($0)}' ; }
 upper_case()   { echo "$*" | awk '{print toupper($0)}' ; }
-#TIP: use «lower_case» and «upper_case» to convert to upper/lower case
-#TIP:> param=$(lower_case $param)
+
 slugify()     {
     # shellcheck disable=SC2020
   lower_case "$*" \
@@ -199,12 +193,8 @@ slugify()     {
     }' \
   | cut -c1-50
   }
-#TIP: use «slugify» to convert a word/sentence with diacritcs, spaces, special chars in a string to use in e.g. a filename
-#TIP:> filename=temp.$(slugify $input_from_user).txt
 
 confirm() { is_set $force && return 0; read -r -p "$1 [y/N] " -n 1; echo " "; [[ $REPLY =~ ^[Yy]$ ]];}
-#TIP: use «confirm» for interactive confirmation before doing something
-#TIP:> if ! confirm "Delete file"; then ; echo "skip deletion" ;   fi
 
 ask() {
   # $1 = variable name
@@ -219,8 +209,6 @@ ask() {
     eval "$1=\"$ANSWER\""
   fi
 }
-#TIP: use «ask» for interactive setting of variables
-#TIP:> ask NAME "What is your name" "Peter"
 
 error_prefix="${col_red}>${col_reset}"
 trap "die \"ERROR \$? after \$SECONDS seconds \n\
@@ -239,13 +227,9 @@ safe_exit() {
 is_set()       { [[ "$1" -gt 0 ]]; }
 is_empty()     { [[ -z "$1" ]] ; }
 is_not_empty() { [[ -n "$1" ]] ; }
-#TIP: use «is_empty» and «is_not_empty» to test for variables
-#TIP:> if is_empty "$email" ; then ; echo "Need Email!" ; fi
 
 is_file() { [[ -f "$1" ]] ; }
 is_dir()  { [[ -d "$1" ]] ; }
-#TIP: use «is_file» and «is_dir» to test for files or folders
-#TIP:> if is_file "/etc/hosts" ; then ; cat "/etc/hosts" ; fi
 
 show_usage() {
   out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
@@ -256,24 +240,29 @@ show_usage() {
   | awk '
   BEGIN { FS="|"; OFS=" "; oneline="" ; fulltext="Flags, options and parameters:"}
   $1 ~ /flag/  {
-    fulltext = fulltext sprintf("\n    -%1s|--%-10s: [flag] %s [default: off]",$2,$3,$4) ;
+    fulltext = fulltext sprintf("\n    -%1s|--%-12s: [flag] %s [default: off]",$2,$3,$4) ;
     oneline  = oneline " [-" $2 "]"
     }
   $1 ~ /option/  {
-    fulltext = fulltext sprintf("\n    -%1s|--%s <%s>: [optn] %s",$2,$3,"val",$4) ;
+    fulltext = fulltext sprintf("\n    -%1s|--%-12s: [option] %s",$2,$3 " <?>",$4) ;
     if($5!=""){fulltext = fulltext "  [default: " $5 "]"; }
     oneline  = oneline " [-" $2 " <" $3 ">]"
     }
   $1 ~ /secret/  {
-    fulltext = fulltext sprintf("\n    -%1s|--%s <%s>: [secr] %s",$2,$3,"val",$4) ;
+    fulltext = fulltext sprintf("\n    -%1s|--%s <%s>: [secr] %s",$2,$3,"?",$4) ;
       oneline  = oneline " [-" $2 " <" $3 ">]"
     }
   $1 ~ /param/ {
     if($2 == "1"){
-          fulltext = fulltext sprintf("\n    %-10s: [parameter] %s","<"$3">",$4);
+          fulltext = fulltext sprintf("\n    %-17s: [parameter] %s","<"$3">",$4);
           oneline  = oneline " <" $3 ">"
-     } else {
-          fulltext = fulltext sprintf("\n    %-10s: [parameters] %s (1 or more)","<"$3">",$4);
+     }
+     if($2 == "?"){
+          fulltext = fulltext sprintf("\n    %-17s: [parameter] %s (optional)","<"$3">",$4);
+          oneline  = oneline " <" $3 "?>"
+     }
+     if($2 == "n"){
+          fulltext = fulltext sprintf("\n    %-17s: [parameters] %s (1 or more)","<"$3">",$4);
           oneline  = oneline " <" $3 " …>"
      }
     }
@@ -286,7 +275,15 @@ show_tips(){
   | awk "
   /TIP: / {\$1=\"\"; gsub(/«/,\"$col_grn\"); gsub(/»/,\"$col_reset\"); print \"*\" \$0}
   /TIP:> / {\$1=\"\"; print \" $col_ylw\" \$0 \"$col_reset\"}
-  "
+  " \
+  | awk \
+    -v script_basename="$script_basename" \
+    -v script_prefix="$script_prefix" \
+    '{
+    gsub(/\$script_basename/,script_basename);
+    gsub(/\$script_prefix/,script_prefix);
+    print ;
+    }'
 }
 
 init_options() {
@@ -324,15 +321,13 @@ folder_prep(){
       local max_days=${2:-365}
       if [[ ! -d "$folder" ]] ; then
           log "Create folder : [$folder]"
-          mkdir "$folder"
+          mkdir -p "$folder"
       else
           log "Cleanup folder: [$folder] - delete files older than $max_days day(s)"
           find "$folder" -mtime "+$max_days" -type f -exec rm {} \;
       fi
   fi
 }
-#TIP: use «folder_prep» to create a folder if needed and otherwise clean up old files
-#TIP:> folder_prep "$log_dir" 7 # delete all files olders than 7 days
 
 expects_single_params(){
   list_options | grep 'param|1|' > /dev/null
@@ -396,7 +391,7 @@ parse_options() {
       echo "### USAGE"
       show_usage
       echo ""
-      echo "### SCRIPT AUTHORING TIPS"
+      echo "### TIPS & EXAMPLES"
       show_tips
       safe_exit
     )
@@ -464,6 +459,7 @@ lookup_script_data(){
   readonly execution_year=$(date "+%Y")
 
   # cf https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
+  # get installation folder of this script, resolving symlinks if necessary
   script_install_path="${BASH_SOURCE[0]}"
   script_install_folder="$( cd -P "$( dirname "$script_install_path" )" >/dev/null 2>&1 && pwd )"
   while [ -h "$script_install_path" ]; do
@@ -473,6 +469,7 @@ lookup_script_data(){
     [[ "$script_install_path" != /* ]] && script_install_path="$script_install_folder/$script_install_path"
   done
 
+  # get last modified date of this script
   script_modified="??"
   os_name=$(uname -s)
   [[ "$os_name" = "Linux" ]]  && script_modified=$(stat -c %y    "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
@@ -486,11 +483,20 @@ lookup_script_data(){
   # $script_basename        = [<script>.sh]
   # $script_prefix          = [<script>]
 
+  # get script version from VERSION.md file - which is automatically updated by pforret/setver
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
+
+  # if run inside a git repo, detect for which remote repo it is
   if git status >/dev/null 2>&1 ; then
     readonly in_git_repo=1
+    readonly git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
+    log "git remote: $git_repo_remote"
+    readonly git_repo_root=$(git rev-parse --show-toplevel)
+    log "git local : $git_repo_root"
   else
     readonly in_git_repo=0
+    readonly git_repo_root=""
+    readonly git_repo_remote=""
   fi
 }
 
@@ -502,7 +508,7 @@ prep_log_and_temp_dir(){
     folder_prep "$tmp_dir" 1
     tmp_file=$(mktemp "$tmp_dir/$execution_day.XXXXXX")
     log "tmp_file: $tmp_file"
-    # you can use this teporary file in your program
+    # you can use this temporary file in your program
     # it will be deleted automatically if the program ends without problems
   fi
   # shellcheck disable=SC2154
@@ -514,9 +520,6 @@ prep_log_and_temp_dir(){
 }
 
 import_env_if_any(){
-  #TIP: use «.env» file in script folder / current folder to set secrets or common config settings
-  #TIP:> AWS_SECRET_ACCESS_KEY="..."
-
   if [[ -f "$script_install_folder/.env" ]] ; then
     log "Read config from [$script_install_folder/.env]"
     # shellcheck disable=SC1090

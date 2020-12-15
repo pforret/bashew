@@ -1,4 +1,5 @@
-log/*
-.tmp/*
+log
+.tmp
 *.tmp
 .env
+.idea

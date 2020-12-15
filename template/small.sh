@@ -5,6 +5,7 @@ readonly script_created="meta_thisday"
 readonly script_version="0.0.0" # update version number manually
 readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
 readonly script_basename=$(basename "${BASH_SOURCE[0]}")
+readonly script_folder=$(dirname "${BASH_SOURCE[0]}")
 readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
 
 #####################################################################
@@ -20,6 +21,7 @@ show_usage() {
 }
 
 # import .env file with secrets/config
+[[ -f "$script_folder/.env" ]]  && source "$script_folder/.env"
 [[ -f "./.env" ]]  && source "./.env"
 
 #####################################################################
@@ -43,12 +45,13 @@ shift $((OPTIND -1))
 #####################################################################
 main() {
     log "Program: $script_basename $script_version"
+    log "Created: $script_created"
     log "Updated: $script_modified"
     log "Run as : $USER@$HOSTNAME"
     # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
     verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
 
-    action=$(lower_case "$1")
+    action=$(lower_case "${1:-}")
     case $action in
     action1 )
         perform_action1 "$target"
@@ -81,7 +84,8 @@ perform_action2(){
 [[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
-set -uo pipefail
+# cf https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
+set -Eeuo pipefail
 IFS=$'\n\t'
 
 script_modified="??"
