@@ -99,16 +99,10 @@ Example:
         cd <newname>
         ./bashew.sh init             # will ask for details and iniialise/clean up the repo
 
-### 5. cop/paste straight from github
+### 5. copy/paste straight from github
 
-* full script template (550 lines)
-
-[copy from here](https://raw.githubusercontent.com/pforret/bashew/master/template/normal.sh)
-
-* short script template (140 lines)
-
-[copy from here](https://raw.githubusercontent.com/pforret/bashew/master/template/small.sh)
-
+* [full script template (+-550 lines)](https://raw.githubusercontent.com/pforret/bashew/master/template/normal.sh)
+* [short script template (+-150 lines)](https://raw.githubusercontent.com/pforret/bashew/master/template/small.sh)
 
 ## Installation
 
