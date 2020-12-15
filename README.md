@@ -89,17 +89,26 @@ Example:
         cd <your repo>
         ./bashew.sh init             # will ask for details and initialise/clean up the repo
 
-#### and then, if you have [semver.sh](https://github.com/pforret/semver):
-        semver.sh push          # will commit and push new code
-        semver.sh new patch     # will set new version to 0.0.1
-
-
+#### and then, if you have [setver.sh](https://github.com/pforret/setver):
+        setver push          # will commit and push new code
+        setver new patch     # will set new version to 0.0.1
   
 ### 4. git clone into new repo
 
         git clone --depth=1 https://github.com/pforret/bashew.git <newname>
         cd <newname>
         ./bashew.sh init             # will ask for details and iniialise/clean up the repo
+
+### 5. cop/paste straight from github
+
+* full script template (550 lines)
+
+[copy from here](https://raw.githubusercontent.com/pforret/bashew/master/template/normal.sh)
+
+* short script template (140 lines)
+
+[copy from here](https://raw.githubusercontent.com/pforret/bashew/master/template/small.sh)
+
 
 ## Installation
 
