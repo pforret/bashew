@@ -22,18 +22,23 @@ to create a new standalone script **PROJECT** (in a folder, with README) (cf `2.
 to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 
         bashew init
-        
-## Installation
+     
+## Features
 
-* manually
+* contained in 1 single file (no external dependencies)
+* comes with README, CHANGES, ... markdown files
+* edit only main() function and subroutines in beginning of script, all template code is at the end of the script
+* definition of flags/options/paramaters in 1 place only
+* automatic creation of usage text based on definition above
+* short/long option parsing, based on definition above
+* several functions for output to stdout/stderr, with intelligent color usage (not when output is piped)
+* reads a .env configuration file, if there is one
+* predefined quiet (no output) and verbose (more output) modes
+* folder for temporary files (with automatic cleanup)
+* folder for log files (with automatic cleanup)
+* easy CI/CD for Github (with shellcheck)
+* correct determination of script installation folder (for finding .env config or other files)
 
-        git clone https://github.com/pforret/bashew.git
-        ln -s bashew/bashew.sh /usr/local/bin
-    
-* or with [basher](https://github.com/basherpm/basher) package manager
-
-        basher install pforret/bashew
-        
 ## Usage
 
     Usage: bashew.sh [-h] [-q] [-v] [-f] [-t <tmpd>] [-l <logd>] [-n <name>] <action>
@@ -96,6 +101,17 @@ Example:
         cd <newname>
         ./bashew.sh init             # will ask for details and iniialise/clean up the repo
 
+## Installation
+
+* manually
+
+        git clone https://github.com/pforret/bashew.git
+        ln -s bashew/bashew.sh /usr/local/bin
+    
+* or with [basher](https://github.com/basherpm/basher) package manager
+
+        basher install pforret/bashew
+        
 ## What's that name? Bashew?
 * comes from 'bash new'
 * rhymes with cashew
