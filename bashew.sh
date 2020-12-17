@@ -616,7 +616,7 @@ initialize_script_data(){
 
   script_version=0.0.0
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
-  if git status >/dev/null; then
+  if git status >/dev/null 2>&1; then
     readonly in_git_repo=1
   else
     readonly in_git_repo=0
