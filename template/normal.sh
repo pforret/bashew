@@ -152,9 +152,9 @@ out() { ((quiet)) || printf '%b\n' "$*";  }
 progress() {
   ((quiet)) || (
     if is_set ${piped:-0} ; then
-      out "$*"
+      out "$*" >&2
     else
-      printf "... %-${wprogress}b\r" "$*                                             ";
+      printf "... %-${wprogress}b\r" "$*                                             "  >&2
     fi
   )
 }
