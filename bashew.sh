@@ -590,7 +590,7 @@ initialize_script_data(){
     readonly execution_year=$(date "+%Y")
 
   # cf https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
-  script_install_path="$(realpath ${BASH_SOURCE[0]})"
+  script_install_path="$(realpath "${BASH_SOURCE[0]}")"
   if [[ "$script_install_path" == *".basher/cellar/bin"* ]]; then
     script_install_path="${BASH_SOURCE[0]/\.basher\/cellar/\bin/\.basher\/cellar\/packages\/pforret\/bashew}"
   fi
