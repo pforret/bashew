@@ -595,8 +595,8 @@ initialize_script_data(){
   log "Start with $script_install_path"
   while [ -h "$script_install_path" ]; do
     # resolve symbolic links
-    script_install_folder="$( cd -P "$( dirname "$script_install_path" )" >/dev/null 2>&1 && pwd )"
     script_install_path="$(readlink "$script_install_path")"
+    script_install_folder="$( cd -P "$( dirname "$script_install_path" )" >/dev/null 2>&1 && pwd )"
     [[ "$script_install_path" != /* ]] && script_install_path="$script_install_folder/$script_install_path"
   done
   script_install_folder=$(cd -P "$script_install_folder" >/dev/null 2>&1 && pwd)

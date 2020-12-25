@@ -53,25 +53,28 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
         <action>  : [parameter] action to perform: script/project/init/update
 
 ### 1. create new bash script (without repo)
+```shell
+bashew.sh script                    # will interactively ask for author & script details
+bashew.sh -f script                 # will create new script with random name
+bashew.sh -f -n "../list.sh" script # will create new script ../list.sh
+```
 
-        bashew.sh script                # will interactively ask for author & script details
-        bashew.sh -f script             # will create new script with random name
-        bashew.sh -f -n "../list.sh" script # will create new script ../list.sh
-   
 Example:
+```shell
+$ bashew.sh -f script
+…  Creating script ./towel_nappers.sh ...
+./towel_nappers.sh
 
-    > bashew.sh -f script
-    …  Creating script ./towel_nappers.sh ...
-    ./towel_nappers.sh
-    
-    > bashew.sh -f -q script
-    ./iffiest_prepays.sh
- 
+$ bashew.sh -f -q script
+./iffiest_prepays.sh
+```
+
 ### 2. create new bash project folder/repo (with README.md, CI/CD)
-
-        bashew.sh project               # will interactively ask for author & script details
-        bashew.sh -f project            # will create new project with random name
-        bashew.sh -f -n "bingo" project # will create new project in folder "bingo"
+```shell
+bashew.sh project               # will interactively ask for author & script details
+bashew.sh -f project            # will create new project with random name
+bashew.sh -f -n "bingo" project # will create new project in folder "bingo"
+```
 
 Example:
 
@@ -84,22 +87,25 @@ Example:
 
 * on [github.com/pforret/bashew](https://github.com/pforret/bashew), click on '**Use this template**'
 * then clone your new repo
+```shell
+git clone https://github.com/<you>/<your repo>.git
+cd <your repo>
+./bashew.sh init             # will ask for details and initialise/clean up the repo
+```
 
-        git clone https://github.com/<you>/<your repo>.git
-        cd <your repo>
-        ./bashew.sh init             # will ask for details and initialise/clean up the repo
-
-#### and then, if you have [semver.sh](https://github.com/pforret/semver):
-        semver.sh push          # will commit and push new code
-        semver.sh new patch     # will set new version to 0.0.1
-
-
+#### and then, if you have [setver.sh](https://github.com/pforret/setver):
+```shell
+setver push          # will commit and push new code
+setver new patch     # will set new version to 0.0.1
+setver set 1.0.0     # when your first working version is committed
+```
   
 ### 4. git clone into new repo
-
-        git clone --depth=1 https://github.com/pforret/bashew.git <newname>
-        cd <newname>
-        ./bashew.sh init             # will ask for details and iniialise/clean up the repo
+```shell
+git clone --depth=1 https://github.com/pforret/bashew.git <newname>
+cd <newname>
+./bashew.sh init             # will ask for details and iniialise/clean up the repo
+```
 
 ## Installation
 
