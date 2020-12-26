@@ -55,6 +55,7 @@ list_dependencies() {
 awk
 " | grep -v "^#"
 }
+
 #####################################################################
 ## Put your main script here
 #####################################################################
@@ -64,7 +65,7 @@ main() {
   log "Created: $script_created"
   log "Updated: $script_modified"
   log "Run as : $USER@$HOSTNAME"
-  # add programs that need to be installed, like: tar, wget, ffmpeg, rsync, convert, curl, gawk ...
+
   require_binaries
   log_to_file "[$script_basename] $script_version started"
   time_started=$(date '+%s')
