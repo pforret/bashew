@@ -596,7 +596,6 @@ initialize_script_data(){
   while [ -h "$script_install_path" ]; do
     # resolve symbolic links
     script_install_path="$(readlink "$script_install_path")"
-   log "🔗 Linked to: $script_install_path ..."
 
     # if link without path, (e.g. <script> -> <script.sh>) fill in the original folder
     [[ "$script_install_path" == "$(basename "$script_install_path")" ]] && script_install_path="$script_install_folder/$script_install_path"
