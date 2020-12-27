@@ -591,15 +591,15 @@ initialize_script_data(){
 
   # cf https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
   script_install_path="${BASH_SOURCE[0]}"
-  script_install_folder=$(dirname "$script_install_path")
-  log "Start with $script_install_path"
+  script_install_folder="$(cd -P "$(dirname "$script_install_path")" >/dev/null 2>&1 && pwd)"
+  log "📜 Script path: $script_install_path - folder $script_install_folder"
   while [ -h "$script_install_path" ]; do
     # resolve symbolic links
     script_install_path="$(readlink "$script_install_path")"
-    script_install_folder="$( cd -P "$( dirname "$script_install_path" )" >/dev/null 2>&1 && pwd )"
+   script_install_folder="$(cd -P "$(dirname "$script_install_path")" >/dev/null 2>&1 && pwd)"
     [[ "$script_install_path" != /* ]] && script_install_path="$script_install_folder/$script_install_path"
+   log "🔗 Linked to: $script_install_path - folder $script_install_folder"
   done
-  script_install_folder=$(cd -P "$script_install_folder" >/dev/null 2>&1 && pwd)
 
   script_modified="??"
   os_uname=$(uname -s)
@@ -609,10 +609,51 @@ initialize_script_data(){
   log "Executing : [$script_install_path]"
   log "In folder : [$script_install_folder]"
 
-  # $script_install_folder  = [/Users/<username>/.basher/cellar/packages/pforret/bashew]
-  # $script_install_path    = [/Users/<username>/.basher/cellar/packages/pforret/bashew/bashew]
-  # $script_basename        = [bashew.sh]
-  # $script_prefix          = [bashew]
+  # get shell/operating system/versions
+  shell_brand="sh"
+  shell_version="?"
+  [[ -n "${ZSH_VERSION:-}" ]]  && shell_brand="zsh"  && shell_version="$ZSH_VERSION"
+  [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
+  [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
+  [[ -n "${KSH_VERSION:-}" ]]  && shell_brand="ksh"  && shell_version="$KSH_VERSION"
+  log "Detected shell: $shell_brand - version $shell_version"
+
+  readonly os_kernel=$(uname -s)
+  os_version=$(uname -r)
+  os_machine=$(uname -m)
+  install_package=""
+  case "$os_kernel" in
+  CYGWIN*|MSYS*|MINGW*)
+    os_name="Windows"
+    ;;
+  Darwin)
+    os_name=$(sw_vers -productName) # macOS
+    os_version=$(sw_vers -productVersion) # 11.1
+    install_package="brew install"
+    ;;
+  Linux|GNU*)
+    if [[ $(which lsb_release) ]] ; then
+      # 'normal' Linux distributions
+      os_name=$(lsb_release -i) # Ubuntu
+      os_version=$(lsb_release -r) # 20.04
+    else
+      # Synology, QNAP,
+      os_name="Linux"
+    fi
+    [[ -x /bin/apt-cyg ]]       && install_package="apt-cyg install" # Cygwin
+    [[ -x /bin/dpkg ]]          && install_package="dpkg -i"      # Synology
+    [[ -x /opt/bin/ipkg ]]      && install_package="ipkg install" # Synology
+    [[ -x /usr/sbin/pkg ]]      && install_package="pkg install"  # BSD
+    [[ -x /usr/bin/pacman ]]    && install_package="pacman -S"    # Arch Linux
+    [[ -x /usr/bin/zypper ]]    && install_package="zypper install" # Suse Linux
+    [[ -x /usr/bin/emerge ]]    && install_package="emerge"       # Gentoo
+    [[ -x /usr/bin/yum ]]       && install_package="yum install"  # RedHat RHEL/CentOS/Fedora
+    [[ -x /usr/bin/apk ]]       && install_package="apk add"      # Alpine
+    [[ -x /usr/bin/apt-get ]]   && install_package="apt-get install"  # Debian
+    [[ -x /usr/bin/apt ]]       && install_package="apt install"  # Ubuntu
+  esac
+  log "System    : $os_name ($os_kernel) $os_version on $os_machine"
+  log "Installer : $install_package"
 
   script_version=0.0.0
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")

@@ -539,11 +539,13 @@ lookup_script_data() {
   # cf https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
   # get installation folder of this script, resolving symlinks if necessary
   script_install_path="${BASH_SOURCE[0]}"
+  log "Script path: $script_install_path"
   script_install_folder="$(cd -P "$(dirname "$script_install_path")" >/dev/null 2>&1 && pwd)"
   while [ -h "$script_install_path" ]; do
     # resolve symbolic links
     script_install_path="$(readlink "$script_install_path")"
-    script_install_folder="$(cd -P "$(dirname "$script_install_path")" >/dev/null 2>&1 && pwd)"
+   log "Linked to: $script_install_path"
+   script_install_folder="$(cd -P "$(dirname "$script_install_path")" >/dev/null 2>&1 && pwd)"
     [[ "$script_install_path" != /* ]] && script_install_path="$script_install_folder/$script_install_path"
   done
 
@@ -554,6 +556,7 @@ lookup_script_data() {
   [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
   [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
   [[ -n "${KSH_VERSION:-}" ]]  && shell_brand="ksh"  && shell_version="$KSH_VERSION"
+  log "Detected shell: $shell_brand - version $shell_version"
 
   readonly os_kernel=$(uname -s)
   os_version=$(uname -r)
