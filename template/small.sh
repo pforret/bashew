@@ -33,12 +33,14 @@ show_usage() {
 verbose=0
 quiet=0
 target=""
+must_show_usage=0
 while getopts "qvt:" opt; do
   case ${opt} in
     q ) quiet=1 ;;
     v ) verbose=1 ;;
     t ) target="$OPTARG" ;;
-    \? ) show_usage && safe_exit ;;
+    \? ) must_show_usage=1 ;;
+    * ) must_show_usage=1 ;;
   esac
 done
 shift $((OPTIND -1))
@@ -52,6 +54,7 @@ main() {
     log "Updated: $script_modified"
     log "Run as : $USER@$HOSTNAME"
     # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
+    [[ $must_show_usage -gt 0 ]] && show_usage && safe_exit
     verify_programs awk basename cut date dirname find grep head mkdir sed stat tput uname wc
 
     action=$(lower_case "${1:-}")

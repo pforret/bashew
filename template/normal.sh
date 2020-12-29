@@ -2,9 +2,9 @@
 ### ==============================================================================
 ### SO HOW DO YOU PROCEED WITH YOUR SCRIPT?
 ### 1. define the options/parameters and defaults you need in list_options()
-### 2. implement the different actions in main() with helper functions
-### 3. implement helper functions you defined in previous step
-### 4. add binaries your script needs (e.g. ffmpeg, jq) to require_binaries
+### 2. define dependencies on other programs/scripts in list_dependencies()
+### 3. implement the different actions in main() with helper functions
+### 4. implement helper functions you defined in previous step
 ### ==============================================================================
 
 ### Created by author_name ( author_username ) on meta_thisday
@@ -647,14 +647,24 @@ import_env_if_any() {
     # shellcheck disable=SC1090
     source "$script_install_folder/.env"
   fi
+  if [[ -f "$script_install_folder/$script_prefix.env" ]] ; then
+    log "Read config from [$script_install_folder/$script_prefix.env]"
+    # shellcheck disable=SC1090
+    source "$script_install_folder/$script_prefix.env"
+  fi
   if [[ -f "./.env" ]]; then
     log "Read config from [./.env]"
     # shellcheck disable=SC1090
     source "./.env"
   fi
+  if [[ -f "./$script_prefix.env" ]]; then
+    log "Read config from [./$script_prefix.env]"
+    # shellcheck disable=SC1090
+    source "./$script_prefix.env"
+  fi
 }
 
-[[ $run_as_root == 1 ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
+[[ $run_as_root == 1 ]]  && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
 lookup_script_data
