@@ -82,14 +82,25 @@ copy_and_replace() {
   local input="$1"
   local output="$2"
 
+  awk \
+    -v author_fullname="$author_fullname" \
+    -v author_username="$author_username" \
+    -v author_email="$author_email" \
+    -v package_name="$clean_name" \
+    -v package_description="$new_description" \
+    -v meta_thisday="$execution_day" \
+    -v meta_thisyear="$execution_year" \
+    '{
+    gsub(/author_name/,author_fullname);
+    gsub(/author_username/,author_username);
+    gsub(/author@email.com/,author_email);
+    gsub(/package_name/,package_name);
+    gsub(/package_description/,package_description);
+    gsub(/meta_thisday/,meta_thisday);
+    gsub(/meta_thisyear/,meta_thisyear);
+    print;
+    }' \
     < "$input" \
-      sed "s/author_name/$author_fullname/g" \
-    | sed "s/author_username/$author_username/g" \
-    | sed "s/author@email.com/$author_email/g" \
-    | sed "s/package_name/$clean_name/g" \
-    | sed "s/package_description/$new_description/g" \
-    | sed "s/meta_thisday/$execution_day/g" \
-    | sed "s/meta_thisyear/$execution_year/g" \
     > "$output"
 }
 

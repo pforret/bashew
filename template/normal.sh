@@ -279,7 +279,7 @@ is_dir() { [[ -d "$1" ]]; }
 show_usage() {
   out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
   out "Updated: ${col_grn}$script_modified${col_reset}"
-
+  out "Description: package_description"
   echo -n "Usage: $script_basename"
   list_options |
     awk '

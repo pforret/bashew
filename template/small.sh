@@ -16,6 +16,7 @@ script_version="0.0.0" # update version number manually
 show_usage() {
   out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
   out "Updated: ${col_grn}$script_modified${col_reset}"
+  out "Description: package_description"
   out "Usage  : $script_basename [-q] [-v] [-t <target>] <param1>"
   out "    -q : 'quiet' (don't show output)"
   out "    -v : 'verbose' (show more output)"
