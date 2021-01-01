@@ -541,13 +541,13 @@ recursive_readlink(){
   local link_name
   file_folder="$(dirname "$1")"
   # resolve relative to absolute path
-  [[ "$file_folder" != /* ]] && link_folder="$(cd -P "$file_folder" >/dev/null 2>&1 && pwd)"
+  [[ "$file_folder" != /* ]] && link_folder="$(cd -P "$file_folder" &>/dev/null && pwd)"
   local  symlink
   symlink=$(readlink "$1")
   link_folder=$(dirname "$symlink")
   link_name=$(basename "$symlink")
   [[ -z "$link_folder" ]] && link_folder="$file_folder"
-  [[ "$link_folder" = \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" >/dev/null 2>&1 && pwd)"
+  [[ "$link_folder" = \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &>/dev/null && pwd)"
   debug "Symbolic ln: $1 -> [$symlink]"
   recursive_readlink "$link_folder/$link_name"
 }
@@ -623,7 +623,7 @@ lookup_script_data() {
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
 
   # if run inside a git repo, detect for which remote repo it is
-  if git status >/dev/null 2>&1; then
+  if git status &>/dev/null ; then
     readonly git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
     debug "git remote: $git_repo_remote"
     readonly git_repo_root=$(git rev-parse --show-toplevel)

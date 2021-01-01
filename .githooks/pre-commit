@@ -1,17 +1,53 @@
-#!/bin/sh
+#!/usr/bin/env bash
+# cf https://gist.github.com/wookietreiber/3bf8621274caafed543fca6a3feab284#file-git-hook-shellcheck-sh
+set -efu -o pipefail
 
-if git rev-parse --verify HEAD >/dev/null 2>&1
+# returns staged files
+function staged.files {
+  if git rev-parse --verify HEAD &> /dev/null
+  then
+    against=HEAD
+  else
+    against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+  fi
+
+  git diff-index --cached --name-only $against |
+    grep \
+      -e '\.bashrc' \
+      -e '\.zshrc' \
+      -e '\.bash_profile' \
+      -e '\.sh$' || true
+}
+
+declare -a paths=()
+
+while read -r file
+do
+  paths[${#paths[@]}+1]=$file
+done < <(staged.files)
+
+if [[ ${#paths[@]} -eq 0 ]]
 then
-	against=HEAD
+  echo -e '\e[1m\e[32m[info]\e[0m \e[1mshellcheck\e[0m no files in stage'
 else
-	# Initial commit: diff against an empty tree object
-	against=$(git hash-object -t tree /dev/null)
+  if ! command -v shellcheck &> /dev/null
+  then
+    echo -e '\e[1m\e[33m[warn]\e[0m \e[1mshellcheck\e[0m is not installed' >&2
+    exit 0
+  fi
+
+  stage=$(mktemp -d)
+  trap 'rm -r $stage' EXIT INT TERM
+
+  for path in "${paths[@]}"
+  do
+    file="$stage/$path"
+
+    mkdir -p "$(dirname "$file")"
+    git show ":$path" > "$file"
+  done
+
+  pushd "$stage" &> /dev/null
+  shellcheck "${paths[@]}"
+  popd &> /dev/null
 fi
-
-
-# Redirect output to stderr.
-exec 1>&2
-
-
-# If there are whitespace errors, print the offending file names and fail.
-exec find . -name \*.sh -exec shellcheck {} \;
