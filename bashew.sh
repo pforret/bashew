@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 readonly script_author="peter@forret.com"
-readonly script_fname=$(basename "${BASH_SOURCE[0]}")
-readonly script_name=$(basename "${BASH_SOURCE[0]}" .sh)
-# runasroot: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
-readonly runasroot=-1
+# run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
+readonly run_as_root=-1
 
 list_options() {
   echo -n "
@@ -22,10 +20,10 @@ param|1|action|action to perform: script/project/init/update
 
 list_examples() {
   echo -n "
-$script_fname script  : create new (stand-alone) script (interactive)
-$script_fname project : create new bash script repo (interactive)
-$script_fname init    : initialize this repo as a new project (when generated from the 'bashew' template repo)
-$script_fname update  : update $script_fname to latest version (git pull)
+$script_basename script  : create new (stand-alone) script (interactive)
+$script_basename project : create new bash script repo (interactive)
+$script_basename init    : initialize this repo as a new project (when generated from the 'bashew' template repo)
+$script_basename update  : update $script_basename to latest version (git pull)
 " | grep -v '^$'
 }
 ## Put your helper scripts here
@@ -135,7 +133,7 @@ delete_folder(){
 #####################################################################
 
 main() {
-  log "Program: $script_fname $script_version"
+  log "Program: $script_basename $script_version"
   log "Updated: $script_modified"
   log "Run as : $USER@$HOSTNAME"
   # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
@@ -202,8 +200,8 @@ main() {
 
   init)
     repo_name=$(basename "$script_install_folder")
-    [[ "$repo_name" == "bashew" ]] && die "You can only run the '$script_fname init' of a *new* repo, derived from the bashew template on Github."
-    [[ ! -d ".git" ]] && die "You can only run '$script_fname init' in the root of your repo"
+    [[ "$repo_name" == "bashew" ]] && die "You can only run the '$script_basename init' of a *new* repo, derived from the bashew template on Github."
+    [[ ! -d ".git" ]] && die "You can only run '$script_basename init' in the root of your repo"
     [[ ! -d "template" ]] && die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from pforret/bashew?"
     new_name="$repo_name.sh"
     get_author_data "./$new_name"
@@ -258,7 +256,7 @@ main() {
     hash6=$(echo "1234567890" | hash)
     out "hash3=$hash3"
     out "hash6=$hash6"
-    out "script_fname=$script_fname"
+    out "script_basename=$script_basename"
     out "script_author=$script_author"
     out "escape1 = $(escape "/forward/slash")"
     out "escape2 = $(escape '\backward\slash')"
@@ -348,14 +346,14 @@ progress() {
 
 die() {
   tput bel
-  out "${col_red}${char_fail} $script_fname${col_reset}: $*" >&2
+  out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
   safe_exit
 }
 
 alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; } # print error and continue
 success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
 announce() { out "${col_grn}${char_wait}${col_reset}  $*" ; sleep 1 ;}
-log() { ((verbose)) && out "${col_ylw}# $* ${col_reset}"; }
+log() { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2; }
 
 escape() { echo "$*" | sed 's/\//\\\//g'; }
 
@@ -389,7 +387,7 @@ trap "die \"ERROR \$? after \$SECONDS seconds \n\
 safe_exit() {
   [[ -n "$tmpfile" ]] && [[ -f "$tmpfile" ]] && rm "$tmpfile"
   trap - INT TERM EXIT
-  log "$script_fname finished after $SECONDS seconds"
+  log "$script_basename finished after $SECONDS seconds"
   exit 0
 }
 
@@ -405,10 +403,10 @@ is_dir() { [[ -d "$1" ]]; }
 #TIP:> if is_file "/etc/hosts" ; then ; cat "/etc/hosts" ; fi
 
 show_usage() {
-  out "Program: ${col_grn}$script_fname $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
+  out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
   out "Updated: ${col_grn}$script_modified${col_reset}"
 
-  echo -n "Usage: $script_fname"
+  echo -n "Usage: $script_basename"
   list_options |
     awk '
   BEGIN { FS="|"; OFS=" "; oneline="" ; fulltext="Flags, options and parameters:"}
@@ -471,7 +469,7 @@ verify_programs() {
   for prog in "$@"; do
     # shellcheck disable=SC2230
     if [[ -z $(which "$prog") ]]; then
-      die "$script_fname needs [$prog] but this program cannot be found on this $os_uname machine"
+      die "$script_basename needs [$prog] but this program cannot be found on this $os_uname machine"
     fi
   done
 }
@@ -596,31 +594,40 @@ parse_options() {
 tmpfile=""
 logfile=""
 
-initialize_script_data(){
-    readonly execution_day=$(date "+%Y-%m-%d")
-    readonly execution_year=$(date "+%Y")
+recursive_readlink(){
+  [[ ! -h "$1" ]] && echo "$1" && return 0
+  local file_folder
+  local link_folder
+  local link_name
+  file_folder="$(dirname "$1")"
+  # resolve relative to absolute path
+  [[ "$file_folder" != /* ]] && link_folder="$(cd -P "$file_folder" >/dev/null 2>&1 && pwd)"
+  local  symlink
+  symlink=$(readlink "$1")
+  link_folder=$(dirname "$symlink")
+  link_name=$(basename "$symlink")
+  [[ -z "$link_folder" ]] && link_folder="$file_folder"
+  [[ "$link_folder" = \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" >/dev/null 2>&1 && pwd)"
+  log "Symbolic ln: $1 -> [$symlink]"
+  recursive_readlink "$link_folder/$link_name"
+}
 
-  # cf https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
+lookup_script_data() {
+  readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
+  readonly script_basename=$(basename "${BASH_SOURCE[0]}")
+  readonly execution_day=$(date "+%Y-%m-%d")
+  readonly execution_year=$(date "+%Y")
+
   script_install_path="${BASH_SOURCE[0]}"
-  script_install_folder="$(cd -P "$(dirname "$script_install_path")" >/dev/null 2>&1 && pwd)"
-  log "📜 Script path: $script_install_path - folder $script_install_folder"
-  while [ -h "$script_install_path" ]; do
-    # resolve symbolic links
-    script_install_path="$(readlink "$script_install_path")"
-
-    # if link without path, (e.g. <script> -> <script.sh>) fill in the original folder
-    [[ "$script_install_path" == "$(basename "$script_install_path")" ]] && script_install_path="$script_install_folder/$script_install_path"
-   script_install_folder="$(cd -P "$(dirname "$script_install_path")" >/dev/null 2>&1 && pwd)"
-   log "🔗 Linked to: $script_install_path - folder $script_install_folder"
-  done
+  log "Script path: $script_install_path"
+  script_install_path=$(recursive_readlink "$script_install_path")
+  log "Actual path: $script_install_path"
+  readonly script_install_folder="$(dirname "$script_install_path")"
 
   script_modified="??"
   os_uname=$(uname -s)
   [[ "$os_uname" == "Linux" ]]  && script_modified=$(stat -c "%y"  "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
   [[ "$os_uname" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
-
-  log "Executing : [$script_install_path]"
-  log "In folder : [$script_install_folder]"
 
   # get shell/operating system/versions
   shell_brand="sh"
@@ -629,7 +636,7 @@ initialize_script_data(){
   [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
   [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
   [[ -n "${KSH_VERSION:-}" ]]  && shell_brand="ksh"  && shell_version="$KSH_VERSION"
-  log "Detected shell: $shell_brand - version $shell_version"
+  log "Shell type : $shell_brand - version $shell_version"
 
   readonly os_kernel=$(uname -s)
   os_version=$(uname -r)
@@ -665,8 +672,7 @@ initialize_script_data(){
     [[ -x /usr/bin/apt-get ]]   && install_package="apt-get install"  # Debian
     [[ -x /usr/bin/apt ]]       && install_package="apt install"  # Ubuntu
   esac
-  log "System    : $os_name ($os_kernel) $os_version on $os_machine"
-  log "Installer : $install_package"
+  log "OS Version : $os_name ($os_kernel) $os_version on $os_machine"
 
   script_version=0.0.0
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
@@ -689,18 +695,28 @@ prep_log_and_temp_dir() {
   logfile=""
   if [[ -n "${logd:-}" ]]; then
     folder_prep "$logd" 7
-    logfile=$logd/$script_name.$execution_day.log
+    logfile=$logd/$script_prefix.$execution_day.log
     log "Logfile: $logfile"
-    echo "$(date '+%H:%M:%S') | [$script_fname] $script_version started" >>"$logfile"
+    echo "$(date '+%H:%M:%S') | [$script_basename] $script_version started" >>"$logfile"
   fi
 }
 
-[[ $runasroot == 1 ]] && [[ $UID -ne 0 ]] && die "MUST be root to run this script"
-[[ $runasroot == -1 ]] && [[ $UID -eq 0 ]] && die "CANNOT be root to run this script"
+[[ $run_as_root == 1 ]] && [[ $UID -ne 0 ]] && die "MUST be root to run this script"
+[[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "CANNOT be root to run this script"
 
-initialize_script_data
+lookup_script_data
+
+# set default values for flags & options
 init_options
+
+# overwrite with specified options if any
 parse_options "$@"
+
+# clean up log and temp folder
 prep_log_and_temp_dir
+
+# run main program
 main
+
+# exit and clean up
 safe_exit

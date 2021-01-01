@@ -531,23 +531,35 @@ get_from_env(){
   | sed -e 's/^"//' -e 's/"$//'
 }
 
+recursive_readlink(){
+  [[ ! -h "$1" ]] && echo "$1" && return 0
+  local file_folder
+  local link_folder
+  local link_name
+  file_folder="$(dirname "$1")"
+  # resolve relative to absolute path
+  [[ "$file_folder" != /* ]] && link_folder="$(cd -P "$file_folder" >/dev/null 2>&1 && pwd)"
+  local  symlink
+  symlink=$(readlink "$1")
+  link_folder=$(dirname "$symlink")
+  link_name=$(basename "$symlink")
+  [[ -z "$link_folder" ]] && link_folder="$file_folder"
+  [[ "$link_folder" = \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" >/dev/null 2>&1 && pwd)"
+  log "Symbolic ln: $1 -> [$symlink]"
+  recursive_readlink "$link_folder/$link_name"
+}
+
 lookup_script_data() {
   readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
   readonly script_basename=$(basename "${BASH_SOURCE[0]}")
   readonly execution_day=$(date "+%Y-%m-%d")
+  readonly execution_year=$(date "+%Y")
 
-  # cf https://stackoverflow.com/questions/59895/how-to-get-the-source-directory-of-a-bash-script-from-within-the-script-itself
-  # get installation folder of this script, resolving symlinks if necessary
   script_install_path="${BASH_SOURCE[0]}"
   log "Script path: $script_install_path"
-  script_install_folder="$(cd -P "$(dirname "$script_install_path")" >/dev/null 2>&1 && pwd)"
-  while [ -h "$script_install_path" ]; do
-    # resolve symbolic links
-    script_install_path="$(readlink "$script_install_path")"
-   log "Linked to: $script_install_path"
-   script_install_folder="$(cd -P "$(dirname "$script_install_path")" >/dev/null 2>&1 && pwd)"
-    [[ "$script_install_path" != /* ]] && script_install_path="$script_install_folder/$script_install_path"
-  done
+  script_install_path=$(recursive_readlink "$script_install_path")
+  log "Actual path: $script_install_path"
+  readonly script_install_folder="$(dirname "$script_install_path")"
 
   # get shell/operating system/versions
   shell_brand="sh"
@@ -642,26 +654,15 @@ prep_log_and_temp_dir() {
 }
 
 import_env_if_any() {
-  if [[ -f "$script_install_folder/.env" ]]; then
-    log "Read config from [$script_install_folder/.env]"
-    # shellcheck disable=SC1090
-    source "$script_install_folder/.env"
-  fi
-  if [[ -f "$script_install_folder/$script_prefix.env" ]] ; then
-    log "Read config from [$script_install_folder/$script_prefix.env]"
-    # shellcheck disable=SC1090
-    source "$script_install_folder/$script_prefix.env"
-  fi
-  if [[ -f "./.env" ]]; then
-    log "Read config from [./.env]"
-    # shellcheck disable=SC1090
-    source "./.env"
-  fi
-  if [[ -f "./$script_prefix.env" ]]; then
-    log "Read config from [./$script_prefix.env]"
-    # shellcheck disable=SC1090
-    source "./$script_prefix.env"
-  fi
+  env_files=("$script_install_folder/.env" "$script_install_folder/$script_prefix.env" "./.env" "./$script_prefix.env")
+
+  for env_file in "${env_files[@]}" ; do
+    if [[ -f "$env_file" ]] ; then
+      log "Read config from [$env_file]"
+      # shellcheck disable=SC1090
+      source "$env_file"
+    fi
+  done
 }
 
 [[ $run_as_root == 1 ]]  && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
