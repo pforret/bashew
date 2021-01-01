@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-### Created by author_name ( author_username ) on meta_thisday
+### Created by author_name ( author_username ) on meta_today
 readonly script_author="author@email.com"
-readonly script_created="meta_thisday"
+readonly script_created="meta_today"
 readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
 readonly script_basename=$(basename "${BASH_SOURCE[0]}")
 readonly script_folder=$(dirname "${BASH_SOURCE[0]}")
@@ -24,7 +24,9 @@ show_usage() {
 }
 
 # import .env file with secrets/config
+# shellcheck source=/dev/null
 [[ -f "$script_folder/.env" ]]  && source "$script_folder/.env"
+# shellcheck source=/dev/null
 [[ -f "./.env" ]]  && source "./.env"
 
 #####################################################################
@@ -49,7 +51,7 @@ shift $((OPTIND -1))
 ## 3. process script parameters
 #####################################################################
 main() {
-    out "Program: $script_basename $script_version"
+    out "Program: $script_prefix $script_version"
     log "Created: $script_created"
     log "Updated: $script_modified"
     log "Run as : $USER@$HOSTNAME"

@@ -7,10 +7,10 @@
 ### 4. implement helper functions you defined in previous step
 ### ==============================================================================
 
-### Created by author_name ( author_username ) on meta_thisday
-script_version="1.1.1" # if there is a VERSION.md in this script's folder, it will take priority for version number
+### Created by author_name ( author_username ) on meta_today
+script_version="0.0.1" # if there is a VERSION.md in this script's folder, it will take priority for version number
 readonly script_author="author@email.com"
-readonly script_created="meta_thisday"
+readonly script_created="meta_today"
 readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
 
 list_options() {
@@ -38,9 +38,9 @@ option|w|width|width to use|800
 param|1|action|action to perform: analyze/convert
 param|?|input|input file
 param|?|output|output file
-" |
-    grep -v '^#' |
-    sort
+" \
+| grep -v '^#' \
+| sort
 }
 
 list_dependencies() {
@@ -53,7 +53,9 @@ list_dependencies() {
   #progressbar|basher install pforret/progressbar
   echo -n "
 awk
-" | grep -v "^#"
+" \
+| grep -v "^#" \
+| sort
 }
 
 #####################################################################
@@ -61,10 +63,10 @@ awk
 #####################################################################
 
 main() {
-  log "Program: $script_basename $script_version"
-  log "Created: $script_created"
-  log "Updated: $script_modified"
-  log "Run as : $USER@$HOSTNAME"
+  debug "Program: $script_basename $script_version"
+  debug "Created: $script_created"
+  debug "Updated: $script_modified"
+  debug "Run as : $USER@$HOSTNAME"
 
   require_binaries
   log_to_file "[$script_basename] $script_version started"
@@ -89,6 +91,7 @@ main() {
   convert)
     #TIP: use «$script_prefix convert» to convert input into output
     #TIP:> $script_prefix convert input.txt output.pdf
+    # shellcheck disable=SC2154
     do_convert "$input" "$output"
     ;;
 
@@ -207,7 +210,7 @@ announce() {
   sleep 1
 }
 
-log() { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2; }
+debug() { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2; }
 
 log_to_file() {
   echo "$(date '+%H:%M:%S') | $*" >>"$log_file"
@@ -261,11 +264,11 @@ trap "die \"ERROR \$? after \$SECONDS seconds \n\
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 # trap 'echo ‘$BASH_COMMAND’ failed with error code $?' ERR
 safe_exit() {
-  log "Start exit sequence"
+  debug "Start exit sequence"
   [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
   trap - INT TERM EXIT
-  log "$script_basename finished after $SECONDS seconds"
-  log "Exit now"
+  debug "$script_basename finished after $SECONDS seconds"
+  debug "Exit now"
   exit
 }
 
@@ -349,9 +352,9 @@ init_options() {
 require_binaries() {
   os_name=$(uname -s)
   os_version=$(uname -prm)
-  log "Running: $os_name ($os_version)"
-  [[ -n "${ZSH_VERSION:-}" ]] && log "Running: zsh $ZSH_VERSION"
-  [[ -n "${BASH_VERSION:-}" ]] && log "Running: bash $BASH_VERSION"
+  debug "Running: $os_name ($os_version)"
+  [[ -n "${ZSH_VERSION:-}" ]] && debug "Running: zsh $ZSH_VERSION"
+  [[ -n "${BASH_VERSION:-}" ]] && debug "Running: bash $BASH_VERSION"
   local required_binary
   local install_instructions
 
@@ -359,10 +362,10 @@ require_binaries() {
       required_binary=$(echo "$line" | cut -d'|' -f1)
       [[ -z "$required_binary" ]] && continue
       # shellcheck disable=SC2230
-      log "Check for existence of [$required_binary]"
+      debug "Check for existence of [$required_binary]"
       [[ -n $(which "$required_binary") ]] && continue
       required_package=$(echo "$line" | cut -d'|' -f2)
-      if [[ $(echo $required_package | wc -w) -gt 1 ]] ; then
+      if [[ $(echo "$required_package" | wc -w) -gt 1 ]] ; then
         # example: setver|basher install setver
         install_instructions="$required_package"
       else
@@ -385,10 +388,10 @@ folder_prep() {
     local folder="$1"
     local max_days=${2:-365}
     if [[ ! -d "$folder" ]]; then
-      log "Create folder : [$folder]"
+      debug "Create folder : [$folder]"
       mkdir -p "$folder"
     else
-      log "Cleanup folder: [$folder] - delete files older than $max_days day(s)"
+      debug "Cleanup folder: [$folder] - delete files older than $max_days day(s)"
       find "$folder" -mtime "+$max_days" -type f -exec rm {} \;
     fi
   fi
@@ -442,9 +445,9 @@ parse_options() {
       if echo "$save_option" | grep shift >>/dev/null; then
         local save_var
         save_var=$(echo "$save_option" | cut -d= -f1)
-        log "Found  : ${save_var}=$2"
+        debug "Found  : ${save_var}=$2"
       else
-        log "Found  : $save_option"
+        debug "Found  : $save_option"
       fi
       eval "$save_option"
     else
@@ -467,18 +470,18 @@ parse_options() {
     single_params=$(list_options | grep 'param|1|' | cut -d'|' -f3)
     list_singles=$(echo "$single_params" | xargs)
     single_count=$(echo "$single_params" | count_words)
-    log "Expect : $single_count single parameter(s): $list_singles"
+    debug "Expect : $single_count single parameter(s): $list_singles"
     [[ $# -eq 0 ]] && die "need the parameter(s) [$list_singles]"
 
     for param in $single_params; do
       [[ $# -eq 0 ]] && die "need parameter [$param]"
       [[ -z "$1" ]] && die "need parameter [$param]"
-      log "Assign : $param=$1"
+      debug "Assign : $param=$1"
       eval "$param=\"$1\""
       shift
     done
   else
-    log "No single params to process"
+    debug "No single params to process"
     single_params=""
     single_count=0
   fi
@@ -486,29 +489,29 @@ parse_options() {
   if expects_optional_params; then
     optional_params=$(list_options | grep 'param|?|' | cut -d'|' -f3)
     optional_count=$(echo "$optional_params" | count_words)
-    log "Expect : $optional_count optional parameter(s): $(echo "$optional_params" | xargs)"
+    debug "Expect : $optional_count optional parameter(s): $(echo "$optional_params" | xargs)"
 
     for param in $optional_params; do
-      log "Assign : $param=${1:-}"
+      debug "Assign : $param=${1:-}"
       eval "$param=\"${1:-}\""
       shift
     done
   else
-    log "No optional params to process"
+    debug "No optional params to process"
     optional_params=""
     optional_count=0
   fi
 
   if expects_multi_param; then
-    #log "Process: multi param"
+    #debug "Process: multi param"
     multi_count=$(list_options | grep -c 'param|n|')
     multi_param=$(list_options | grep 'param|n|' | cut -d'|' -f3)
-    log "Expect : $multi_count multi parameter: $multi_param"
+    debug "Expect : $multi_count multi parameter: $multi_param"
     ((multi_count > 1)) && die "cannot have >1 'multi' parameter: [$multi_param]"
     ((multi_count > 0)) && [[ $# -eq 0 ]] && die "need the (multi) parameter [$multi_param]"
     # save the rest of the params in the multi param
     if [[ -n "$*" ]]; then
-      log "Assign : $multi_param=$*"
+      debug "Assign : $multi_param=$*"
       eval "$multi_param=( $* )"
     fi
   else
@@ -545,7 +548,7 @@ recursive_readlink(){
   link_name=$(basename "$symlink")
   [[ -z "$link_folder" ]] && link_folder="$file_folder"
   [[ "$link_folder" = \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" >/dev/null 2>&1 && pwd)"
-  log "Symbolic ln: $1 -> [$symlink]"
+  debug "Symbolic ln: $1 -> [$symlink]"
   recursive_readlink "$link_folder/$link_name"
 }
 
@@ -553,12 +556,12 @@ lookup_script_data() {
   readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
   readonly script_basename=$(basename "${BASH_SOURCE[0]}")
   readonly execution_day=$(date "+%Y-%m-%d")
-  readonly execution_year=$(date "+%Y")
+  #readonly execution_year=$(date "+%Y")
 
   script_install_path="${BASH_SOURCE[0]}"
-  log "Script path: $script_install_path"
+  debug "Script path: $script_install_path"
   script_install_path=$(recursive_readlink "$script_install_path")
-  log "Actual path: $script_install_path"
+  debug "Actual path: $script_install_path"
   readonly script_install_folder="$(dirname "$script_install_path")"
 
   # get shell/operating system/versions
@@ -568,7 +571,7 @@ lookup_script_data() {
   [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
   [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
   [[ -n "${KSH_VERSION:-}" ]]  && shell_brand="ksh"  && shell_version="$KSH_VERSION"
-  log "Detected shell: $shell_brand - version $shell_version"
+  debug "Detected shell: $shell_brand - version $shell_version"
 
   readonly os_kernel=$(uname -s)
   os_version=$(uname -r)
@@ -604,8 +607,8 @@ lookup_script_data() {
     [[ -x /usr/bin/apt-get ]]   && install_package="apt-get install"  # Debian
     [[ -x /usr/bin/apt ]]       && install_package="apt install"  # Ubuntu
   esac
-  log "System    : $os_name ($os_kernel) $os_version on $os_machine"
-  log "Installer : $install_package"
+  debug "System    : $os_name ($os_kernel) $os_version on $os_machine"
+  debug "Installer : $install_package"
 
 
   # get last modified date of this script
@@ -613,21 +616,19 @@ lookup_script_data() {
   [[ "$os_name" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
   [[ "$os_name" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
 
-  log "Executing : [$script_install_path]"
-  log "In folder : [$script_install_folder]"
+  debug "Executing : [$script_install_path]"
+  debug "In folder : [$script_install_folder]"
 
   # get script version from VERSION.md file - which is automatically updated by pforret/setver
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
 
   # if run inside a git repo, detect for which remote repo it is
   if git status >/dev/null 2>&1; then
-    readonly in_git_repo=1
     readonly git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
-    log "git remote: $git_repo_remote"
+    debug "git remote: $git_repo_remote"
     readonly git_repo_root=$(git rev-parse --show-toplevel)
-    log "git local : $git_repo_root"
+    debug "git local : $git_repo_root"
   else
-    readonly in_git_repo=0
     readonly git_repo_root=""
     readonly git_repo_remote=""
   fi
@@ -641,7 +642,7 @@ prep_log_and_temp_dir() {
   if is_not_empty "$tmp_dir"; then
     folder_prep "$tmp_dir" 1
     tmp_file=$(mktemp "$tmp_dir/$execution_day.XXXXXX")
-    log "tmp_file: $tmp_file"
+    debug "tmp_file: $tmp_file"
     # you can use this temporary file in your program
     # it will be deleted automatically if the program ends without problems
   fi
@@ -649,7 +650,7 @@ prep_log_and_temp_dir() {
   if [[ -n "$log_dir" ]]; then
     folder_prep "$log_dir" 7
     log_file=$log_dir/$script_prefix.$execution_day.log
-    log "log_file: $log_file"
+    debug "log_file: $log_file"
   fi
 }
 
@@ -658,7 +659,7 @@ import_env_if_any() {
 
   for env_file in "${env_files[@]}" ; do
     if [[ -f "$env_file" ]] ; then
-      log "Read config from [$env_file]"
+      debug "Read config from [$env_file]"
       # shellcheck disable=SC1090
       source "$env_file"
     fi
@@ -679,7 +680,7 @@ import_env_if_any
 # overwrite with specified options if any
 parse_options "$@"
 
-# clean up log and temp folder
+# clean up debug and temp folder
 prep_log_and_temp_dir
 
 # run main program

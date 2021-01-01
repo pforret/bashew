@@ -29,4 +29,4 @@ or with `git`
 
 * script created with [bashew](https://github.com/pforret/bashew)
 
-&copy; meta_thisyear author_name
+&copy; meta_year author_name

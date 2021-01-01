@@ -86,16 +86,16 @@ copy_and_replace() {
     -v author_email="$author_email" \
     -v package_name="$clean_name" \
     -v package_description="$new_description" \
-    -v meta_thisday="$execution_day" \
-    -v meta_thisyear="$execution_year" \
+    -v meta_today="$execution_day" \
+    -v meta_year="$execution_year" \
     '{
     gsub(/author_name/,author_fullname);
     gsub(/author_username/,author_username);
     gsub(/author@email.com/,author_email);
     gsub(/package_name/,package_name);
     gsub(/package_description/,package_description);
-    gsub(/meta_thisday/,meta_thisday);
-    gsub(/meta_thisyear/,meta_thisyear);
+    gsub(/meta_today/,meta_today);
+    gsub(/meta_year/,meta_year);
     print;
     }' \
     < "$input" \
