@@ -641,7 +641,6 @@ lookup_script_data() {
   readonly os_kernel=$(uname -s)
   os_version=$(uname -r)
   os_machine=$(uname -m)
-  install_package=""
   case "$os_kernel" in
   CYGWIN*|MSYS*|MINGW*)
     os_name="Windows"
@@ -649,7 +648,6 @@ lookup_script_data() {
   Darwin)
     os_name=$(sw_vers -productName) # macOS
     os_version=$(sw_vers -productVersion) # 11.1
-    install_package="brew install"
     ;;
   Linux|GNU*)
     if [[ $(which lsb_release) ]] ; then
@@ -660,17 +658,6 @@ lookup_script_data() {
       # Synology, QNAP,
       os_name="Linux"
     fi
-    [[ -x /bin/apt-cyg ]]       && install_package="apt-cyg install" # Cygwin
-    [[ -x /bin/dpkg ]]          && install_package="dpkg -i"      # Synology
-    [[ -x /opt/bin/ipkg ]]      && install_package="ipkg install" # Synology
-    [[ -x /usr/sbin/pkg ]]      && install_package="pkg install"  # BSD
-    [[ -x /usr/bin/pacman ]]    && install_package="pacman -S"    # Arch Linux
-    [[ -x /usr/bin/zypper ]]    && install_package="zypper install" # Suse Linux
-    [[ -x /usr/bin/emerge ]]    && install_package="emerge"       # Gentoo
-    [[ -x /usr/bin/yum ]]       && install_package="yum install"  # RedHat RHEL/CentOS/Fedora
-    [[ -x /usr/bin/apk ]]       && install_package="apk add"      # Alpine
-    [[ -x /usr/bin/apt-get ]]   && install_package="apt-get install"  # Debian
-    [[ -x /usr/bin/apt ]]       && install_package="apt install"  # Ubuntu
   esac
   log "OS Version : $os_name ($os_kernel) $os_version on $os_machine"
 
