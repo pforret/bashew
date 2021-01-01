@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # test functions should start with test_
 # using https://github.com/pgrange/bash_unit
 #  fail
@@ -15,7 +16,7 @@ template_folder=$(cd ../template && pwd) # tests/../template is root folder
 
 test_bashew1_should_show_option_verbose() {
   # script without parameters should give usage info
-  assert_equals 1 $("$root_script" 2>&1 | grep -c "verbose")
+  assert_equals 1 "$("$root_script" 2>&1 | grep -c "verbose")"
 }
 
 test_bashew2_create_normal_script() {
@@ -44,12 +45,12 @@ test_bashew3_create_short_script() {
 
 test_normal1_should_show_option_verbose() {
   # script without parameters should give usage info
-  assert_equals 1 $("$template_folder/normal.sh"  2>&1 | grep -c "verbose")
+  assert_equals 1 "$("$template_folder/normal.sh"  2>&1 | grep -c "verbose")"
 }
 
 test_small1_should_show_option_verbose() {
   # script without parameters should give usage info
-  assert_equals 1 $("$template_folder/small.sh" -h 2>&1 | grep -c "verbose")
+  assert_equals 1 "$("$template_folder/small.sh" -h 2>&1 | grep -c "verbose")"
 }
 
 
