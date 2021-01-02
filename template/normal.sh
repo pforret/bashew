@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 ### ==============================================================================
 ### SO HOW DO YOU PROCEED WITH YOUR SCRIPT?
 ### 1. define the options/parameters and defaults you need in list_options()
@@ -38,9 +39,9 @@ option|w|width|width to use|800
 param|1|action|action to perform: analyze/convert
 param|?|input|input file
 param|?|output|output file
-" \
-| grep -v '^#' \
-| sort
+" |
+    grep -v '^#' |
+    sort
 }
 
 list_dependencies() {
@@ -53,9 +54,9 @@ list_dependencies() {
   #progressbar|basher install pforret/progressbar
   echo -n "
 awk
-" \
-| grep -v "^#" \
-| sort
+" |
+    grep -v "^#" |
+    sort
 }
 
 #####################################################################
@@ -122,6 +123,7 @@ do_convert() {
 
 #####################################################################
 ################### DO NOT MODIFY BELOW THIS LINE ###################
+#####################################################################
 
 # set strict mode -  via http://redsymbol.net/articles/unofficial-bash-strict-mode/
 # removed -e because it made basic [[ testing ]] difficult
@@ -142,9 +144,6 @@ hash() {
 
 force=0
 help=0
-
-## ----------- TERMINAL OUTPUT STUFF
-
 verbose=0
 #to enable verbose even before option parsing
 [[ $# -gt 0 ]] && [[ $1 == "-v" ]] && verbose=1
@@ -152,37 +151,52 @@ quiet=0
 #to enable quiet even before option parsing
 [[ $# -gt 0 ]] && [[ $1 == "-q" ]] && quiet=1
 
-[[ -t 1 ]] && piped=0 || piped=1 # detect if output is piped
-if [[ $piped -eq 0 ]]; then
-  col_reset="\033[0m"
-  col_red="\033[1;31m"
-  col_grn="\033[1;32m"
-  col_ylw="\033[1;33m"
-else
-  col_reset=""
-  col_red=""
-  col_grn=""
-  col_ylw=""
-fi
+initialise_output() {
+  [[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && sourced=1 || sourced=0
+  [[ -t 1 ]] && piped=0 || piped=1 # detect if output is piped
+  if [[ $piped -eq 0 ]]; then
+    col_reset="\033[0m"
+    col_red="\033[1;31m"
+    col_grn="\033[1;32m"
+    col_ylw="\033[1;33m"
+  else
+    col_reset=""
+    col_red=""
+    col_grn=""
+    col_ylw=""
+  fi
 
-[[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
-if [[ $unicode -gt 0 ]]; then
-  char_succ="✔"
-  char_fail="✖"
-  char_alrt="➨"
-  char_wait="…"
-else
-  char_succ="OK "
-  char_fail="!! "
-  char_alrt="?? "
-  char_wait="..."
-fi
+  [[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
+  if [[ $unicode -gt 0 ]]; then
+    char_succ="✔"
+    char_fail="✖"
+    char_alrt="➨"
+    char_wait="…"
+  else
+    char_succ="OK "
+    char_fail="!! "
+    char_alrt="?? "
+    char_wait="..."
+  fi
+  error_prefix="${col_red}>${col_reset}"
 
-readonly nbcols=$(tput cols 2>/dev/null || echo 80)
-#readonly nbrows=$(tput lines)
-readonly wprogress=$((nbcols - 5))
+  readonly nbcols=$(tput cols 2>/dev/null || echo 80)
+  readonly wprogress=$((nbcols - 5))
+}
 
 out() { ((quiet)) || printf '%b\n' "$*"; }
+debug() { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2; }
+die() {
+  out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
+  tput bel
+  safe_exit
+}
+alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; } # print error and continue
+success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
+announce() {
+  out "${col_grn}${char_wait}${col_reset}  $*"
+  sleep 1
+}
 
 progress() {
   ((quiet)) || (
@@ -194,33 +208,14 @@ progress() {
   )
 }
 
-die() {
-  tput bel
-  out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
-  safe_exit
-  #exit 1
-}
-
-alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; } # print error and continue
-
-success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
-
-announce() {
-  out "${col_grn}${char_wait}${col_reset}  $*"
-  sleep 1
-}
-
-debug() { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2; }
-
-log_to_file() {
-  echo "$(date '+%H:%M:%S') | $*" >>"$log_file"
-}
+log_to_file() { [[ -n ${log_file:-} ]] && echo "$(date '+%H:%M:%S') | $*" >>"$log_file"; }
 
 lower_case() { echo "$*" | awk '{print tolower($0)}'; }
 upper_case() { echo "$*" | awk '{print toupper($0)}'; }
 
 slugify() {
   # shellcheck disable=SC2020
+
   lower_case "$*" |
     tr \
       'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' \
@@ -236,6 +231,7 @@ slugify() {
 }
 
 confirm() {
+  # $1 = question
   is_set $force && return 0
   read -r -p "$1 [y/N] " -n 1
   echo " "
@@ -256,19 +252,16 @@ ask() {
   fi
 }
 
-error_prefix="${col_red}>${col_reset}"
 trap "die \"ERROR \$? after \$SECONDS seconds \n\
 \${error_prefix} last command : '\$BASH_COMMAND' \" \
 \$(< \$script_install_path awk -v lineno=\$LINENO \
 'NR == lineno {print \"\${error_prefix} from line \" lineno \" : \" \$0}')" INT TERM EXIT
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
-# trap 'echo ‘$BASH_COMMAND’ failed with error code $?' ERR
+
 safe_exit() {
-  debug "Start exit sequence"
   [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
   trap - INT TERM EXIT
   debug "$script_basename finished after $SECONDS seconds"
-  debug "Exit now"
   exit
 }
 
@@ -319,6 +312,7 @@ show_usage() {
 }
 
 show_tips() {
+  ((sourced)) && return 0
   grep <"${BASH_SOURCE[0]}" -v "\$0" |
     awk "
   /TIP: / {\$1=\"\"; gsub(/«/,\"$col_grn\"); gsub(/»/,\"$col_reset\"); print \"*\" \$0}
@@ -358,29 +352,29 @@ require_binaries() {
   local required_binary
   local install_instructions
 
-    while read -r line; do
-      required_binary=$(echo "$line" | cut -d'|' -f1)
-      [[ -z "$required_binary" ]] && continue
-      # shellcheck disable=SC2230
-      debug "Check for existence of [$required_binary]"
-      [[ -n $(which "$required_binary") ]] && continue
-      required_package=$(echo "$line" | cut -d'|' -f2)
-      if [[ $(echo "$required_package" | wc -w) -gt 1 ]] ; then
-        # example: setver|basher install setver
-        install_instructions="$required_package"
+  while read -r line; do
+    required_binary=$(echo "$line" | cut -d'|' -f1)
+    [[ -z "$required_binary" ]] && continue
+    # shellcheck disable=SC2230
+    debug "Check for existence of [$required_binary]"
+    [[ -n $(which "$required_binary") ]] && continue
+    required_package=$(echo "$line" | cut -d'|' -f2)
+    if [[ $(echo "$required_package" | wc -w) -gt 1 ]]; then
+      # example: setver|basher install setver
+      install_instructions="$required_package"
+    else
+      [[ -z "$required_package" ]] && required_package="$required_binary"
+      if [[ -n "$install_package" ]]; then
+        install_instructions="$install_package $required_package"
       else
-        [[ -z "$required_package" ]] && required_package="$required_binary"
-        if [[ -n "$install_package" ]] ; then
-          install_instructions="$install_package $required_package"
-        else
-          install_instructions="(install $required_package with your package manager)"
-        fi
+        install_instructions="(install $required_package with your package manager)"
       fi
-      alert "$script_basename needs [$required_binary] but it cannot be found"
-      alert "1) install package  : $install_instructions"
-      alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
-      die "Missing program/script [$required_binary]"
-    done < <(list_dependencies)
+    fi
+    alert "$script_basename needs [$required_binary] but it cannot be found"
+    alert "1) install package  : $install_instructions"
+    alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
+    die "Missing program/script [$required_binary]"
+  done < <(list_dependencies)
 }
 
 folder_prep() {
@@ -521,33 +515,20 @@ parse_options() {
   fi
 }
 
-get_from_env(){
-  # $1 = variable name
-  # $2 = input file (if any)
-  if [[ -n ${2:-} ]] ; then
-    [[ ! -f "$2" ]] && die "Cannot find env file [$2]"
-    < "$2" grep -E "^$1="
-  else
-    grep -E "^$1="
-  fi \
-  | cut -d'=' -f2- \
-  | sed -e 's/^"//' -e 's/"$//'
-}
-
-recursive_readlink(){
-  [[ ! -h "$1" ]] && echo "$1" && return 0
+recursive_readlink() {
+  [[ ! -L "$1" ]] && echo "$1" && return 0
   local file_folder
   local link_folder
   local link_name
   file_folder="$(dirname "$1")"
   # resolve relative to absolute path
   [[ "$file_folder" != /* ]] && link_folder="$(cd -P "$file_folder" &>/dev/null && pwd)"
-  local  symlink
+  local symlink
   symlink=$(readlink "$1")
   link_folder=$(dirname "$symlink")
   link_name=$(basename "$symlink")
   [[ -z "$link_folder" ]] && link_folder="$file_folder"
-  [[ "$link_folder" = \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &>/dev/null && pwd)"
+  [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &>/dev/null && pwd)"
   debug "Symbolic ln: $1 -> [$symlink]"
   recursive_readlink "$link_folder/$link_name"
 }
@@ -563,91 +544,97 @@ lookup_script_data() {
   script_install_path=$(recursive_readlink "$script_install_path")
   debug "Actual path: $script_install_path"
   readonly script_install_folder="$(dirname "$script_install_path")"
+  if [[ -f "$script_install_path" ]]; then
+    script_hash=$(hash <"$script_install_path" 8)
+    script_lines=$(awk <"$script_install_path" 'END {print NR}')
+  else
+    # can happen when script is sourced by e.g. bash_unit
+    script_hash="?"
+    script_lines="?"
+  fi
 
   # get shell/operating system/versions
   shell_brand="sh"
   shell_version="?"
-  [[ -n "${ZSH_VERSION:-}" ]]  && shell_brand="zsh"  && shell_version="$ZSH_VERSION"
+  [[ -n "${ZSH_VERSION:-}" ]] && shell_brand="zsh" && shell_version="$ZSH_VERSION"
   [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
   [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
-  [[ -n "${KSH_VERSION:-}" ]]  && shell_brand="ksh"  && shell_version="$KSH_VERSION"
-  debug "Detected shell: $shell_brand - version $shell_version"
+  [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
+  debug "Shell type : $shell_brand - version $shell_version"
 
   readonly os_kernel=$(uname -s)
   os_version=$(uname -r)
   os_machine=$(uname -m)
   install_package=""
   case "$os_kernel" in
-  CYGWIN*|MSYS*|MINGW*)
+  CYGWIN* | MSYS* | MINGW*)
     os_name="Windows"
     ;;
   Darwin)
-    os_name=$(sw_vers -productName) # macOS
+    os_name=$(sw_vers -productName)       # macOS
     os_version=$(sw_vers -productVersion) # 11.1
     install_package="brew install"
     ;;
-  Linux|GNU*)
-    if [[ $(which lsb_release) ]] ; then
+  Linux | GNU*)
+    if [[ $(which lsb_release) ]]; then
       # 'normal' Linux distributions
-      os_name=$(lsb_release -i) # Ubuntu
+      os_name=$(lsb_release -i)    # Ubuntu
       os_version=$(lsb_release -r) # 20.04
     else
       # Synology, QNAP,
       os_name="Linux"
     fi
-    [[ -x /bin/apt-cyg ]]       && install_package="apt-cyg install" # Cygwin
-    [[ -x /bin/dpkg ]]          && install_package="dpkg -i"      # Synology
-    [[ -x /opt/bin/ipkg ]]      && install_package="ipkg install" # Synology
-    [[ -x /usr/sbin/pkg ]]      && install_package="pkg install"  # BSD
-    [[ -x /usr/bin/pacman ]]    && install_package="pacman -S"    # Arch Linux
-    [[ -x /usr/bin/zypper ]]    && install_package="zypper install" # Suse Linux
-    [[ -x /usr/bin/emerge ]]    && install_package="emerge"       # Gentoo
-    [[ -x /usr/bin/yum ]]       && install_package="yum install"  # RedHat RHEL/CentOS/Fedora
-    [[ -x /usr/bin/apk ]]       && install_package="apk add"      # Alpine
-    [[ -x /usr/bin/apt-get ]]   && install_package="apt-get install"  # Debian
-    [[ -x /usr/bin/apt ]]       && install_package="apt install"  # Ubuntu
-  esac
-  debug "System    : $os_name ($os_kernel) $os_version on $os_machine"
-  debug "Installer : $install_package"
+    [[ -x /bin/apt-cyg ]] && install_package="apt-cyg install"     # Cygwin
+    [[ -x /bin/dpkg ]] && install_package="dpkg -i"                # Synology
+    [[ -x /opt/bin/ipkg ]] && install_package="ipkg install"       # Synology
+    [[ -x /usr/sbin/pkg ]] && install_package="pkg install"        # BSD
+    [[ -x /usr/bin/pacman ]] && install_package="pacman -S"        # Arch Linux
+    [[ -x /usr/bin/zypper ]] && install_package="zypper install"   # Suse Linux
+    [[ -x /usr/bin/emerge ]] && install_package="emerge"           # Gentoo
+    [[ -x /usr/bin/yum ]] && install_package="yum install"         # RedHat RHEL/CentOS/Fedora
+    [[ -x /usr/bin/apk ]] && install_package="apk add"             # Alpine
+    [[ -x /usr/bin/apt-get ]] && install_package="apt-get install" # Debian
+    [[ -x /usr/bin/apt ]] && install_package="apt install"         # Ubuntu
+    ;;
 
+  esac
+  debug "System OS  : $os_name ($os_kernel) $os_version on $os_machine"
+  debug "Package mgt: $install_package"
 
   # get last modified date of this script
   script_modified="??"
-  [[ "$os_name" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
-  [[ "$os_name" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
+  [[ "$os_kernel" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
+  [[ "$os_kernel" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
 
-  debug "Executing : [$script_install_path]"
-  debug "In folder : [$script_install_folder]"
+  debug "Last modif : $script_modified"
+  debug "Script ID  : $script_lines lines / md5: $script_hash"
 
   # get script version from VERSION.md file - which is automatically updated by pforret/setver
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
 
   # if run inside a git repo, detect for which remote repo it is
-  if git status &>/dev/null ; then
+  if git status &>/dev/null; then
     readonly git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
-    debug "git remote: $git_repo_remote"
+    debug "git remote : $git_repo_remote"
     readonly git_repo_root=$(git rev-parse --show-toplevel)
-    debug "git local : $git_repo_root"
+    debug "git folder : $git_repo_root"
   else
     readonly git_repo_root=""
     readonly git_repo_remote=""
   fi
-
 }
 
 prep_log_and_temp_dir() {
   tmp_file=""
   log_file=""
-  # shellcheck disable=SC2154
-  if is_not_empty "$tmp_dir"; then
+  if [[ -n "${tmp_dir:-}" ]]; then
     folder_prep "$tmp_dir" 1
     tmp_file=$(mktemp "$tmp_dir/$execution_day.XXXXXX")
     debug "tmp_file: $tmp_file"
     # you can use this temporary file in your program
     # it will be deleted automatically if the program ends without problems
   fi
-  # shellcheck disable=SC2154
-  if [[ -n "$log_dir" ]]; then
+  if [[ -n "${log_dir:-}" ]]; then
     folder_prep "$log_dir" 7
     log_file=$log_dir/$script_prefix.$execution_day.log
     debug "log_file: $log_file"
@@ -657,8 +644,8 @@ prep_log_and_temp_dir() {
 import_env_if_any() {
   env_files=("$script_install_folder/.env" "$script_install_folder/$script_prefix.env" "./.env" "./$script_prefix.env")
 
-  for env_file in "${env_files[@]}" ; do
-    if [[ -f "$env_file" ]] ; then
+  for env_file in "${env_files[@]}"; do
+    if [[ -f "$env_file" ]]; then
       debug "Read config from [$env_file]"
       # shellcheck disable=SC1090
       source "$env_file"
@@ -669,22 +656,17 @@ import_env_if_any() {
 [[ $run_as_root == 1 ]]  && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
-lookup_script_data
+initialise_output  # output settings
+lookup_script_data # find installation folder
+init_options       # set default values for flags & options
+import_env_if_any  # overwrite with .env if any
 
-# set default values for flags & options
-init_options
-
-# overwrite with .env if any
-import_env_if_any
-
-# overwrite with specified options if any
-parse_options "$@"
-
-# clean up debug and temp folder
-prep_log_and_temp_dir
-
-# run main program
-main
-
-# exit and clean up
-safe_exit
+if [[ $sourced -eq 0 ]]; then
+  parse_options "$@"    # overwrite with specified options if any
+  prep_log_and_temp_dir # clean up debug and temp folder
+  main                  # run main program
+  safe_exit             # exit and clean up
+else
+  # just disable the trap, don't execute main
+  trap - INT TERM EXIT
+fi
