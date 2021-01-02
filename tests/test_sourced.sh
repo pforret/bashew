@@ -36,7 +36,7 @@ test_unit_function_wordcount() {
 }
 
 test_unit_function_recursive_readlink() {
-  assert_equals "$HOME/.basher/cellar/packages/pforret/bashew/bashew.sh" "$(recursive_readlink "$HOME/.basher/cellar/bin/bashew")"
+  [[ -f "$HOME/.basher/cellar/bin/bashew" ]] && assert_equals "$HOME/.basher/cellar/packages/pforret/bashew/bashew.sh" "$(recursive_readlink "$HOME/.basher/cellar/bin/bashew")"
 }
 
 test_unit_var_script_install_path() {
@@ -44,5 +44,3 @@ test_unit_var_script_install_path() {
   # shellcheck disable=SC2154
   assert_equals "../template/normal.sh" "$script_install_path"
 }
-
-
