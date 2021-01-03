@@ -23,7 +23,7 @@ declare -a paths=()
 
 while read -r file
 do
-  paths[${#paths[@]}+1]=$file
+  [[ -f "$file" ]] && paths[${#paths[@]}+1]=$file
 done < <(staged.files)
 
 if [[ ${#paths[@]} -eq 0 ]]
