@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 ### ==============================================================================
 ### SO HOW DO YOU PROCEED WITH YOUR SCRIPT?
 ### 1. define the options/parameters and defaults you need in list_options()
@@ -53,7 +52,8 @@ list_dependencies() {
   # Example 3: a package with its own package manager: basher (shell), go get (golang), cargo (Rust)...
   #progressbar|basher install pforret/progressbar
   echo -n "
-awk
+gawk
+curl
 " |
     grep -v "^#" |
     sort
@@ -71,7 +71,6 @@ main() {
 
   require_binaries
   log_to_file "[$script_basename] $script_version started"
-  time_started=$(date '+%s')
 
   action=$(lower_case "$action")
   case $action in
@@ -100,9 +99,7 @@ main() {
     die "action [$action] not recognized"
     ;;
   esac
-  time_ended=$(date '+%s')
-  time_elapsed=$((time_ended - time_started))
-  log_to_file "[$script_basename] ended after $time_elapsed secs"
+  log_to_file "[$script_basename] ended after $SECONDS secs"
   #TIP: >>> bash script created with «pforret/bashew»
   #TIP: >>> for developers, also check «pforret/setver»
 }
@@ -262,7 +259,7 @@ safe_exit() {
   [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
   trap - INT TERM EXIT
   debug "$script_basename finished after $SECONDS seconds"
-  exit
+  exit 0
 }
 
 is_set() { [[ "$1" -gt 0 ]]; }

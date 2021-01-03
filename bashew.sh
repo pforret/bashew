@@ -230,6 +230,9 @@ main() {
     delete_folder assets
     delete_folder .tmp
     delete_folder log
+    for remove in tests/test_script.sh tests/test_sourced.sh ; do
+        [[ -f "$remove" ]] && rm "$remove"
+    done
     log "Delete script [bashew.sh] ..."
     ( sleep 1 ; rm -f bashew.sh bashew ) & # delete will happen after the script is finished
     success "script $new_name created"
