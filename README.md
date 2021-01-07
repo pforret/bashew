@@ -26,9 +26,10 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 ## Features
 
 * contained in 1 single file (no external dependencies)
-* comes with README, CHANGES, ... markdown files
+* comes with `README.md`, `CHANGELOG.md`, ... markdown files
 * edit only main() function and subroutines in beginning of script, all template code is at the end of the script
 * definition of flags/options/paramaters in 1 place only
+* definition of dependencies (like curl, ffmpeg, imagemagick...) in 1 place only
 * automatic creation of usage text based on definition above
 * short/long option parsing, based on definition above
 * several functions for output to stdout/stderr, with intelligent color usage (not when output is piped)
@@ -37,7 +38,7 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 * folder for temporary files (with automatic cleanup)
 * folder for log files (with automatic cleanup)
 * easy CI/CD for Github (with shellcheck)
-* correct determination of script installation folder (for finding .env config or other files)
+* correct determination of script installation folder (resolve symbolic links)
 
 ## Usage
 

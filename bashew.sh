@@ -88,6 +88,7 @@ copy_and_replace() {
     -v package_description="$new_description" \
     -v meta_today="$execution_day" \
     -v meta_year="$execution_year" \
+    -v bashew_version="$script_version" \
     '{
     gsub(/author_name/,author_fullname);
     gsub(/author_username/,author_username);
@@ -96,6 +97,7 @@ copy_and_replace() {
     gsub(/package_description/,package_description);
     gsub(/meta_today/,meta_today);
     gsub(/meta_year/,meta_year);
+    gsub(/bashew_version/,bashew_version);
     print;
     }' \
     < "$input" \

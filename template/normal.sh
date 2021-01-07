@@ -8,6 +8,7 @@
 ### ==============================================================================
 
 ### Created by author_name ( author_username ) on meta_today
+### Based on https://github.com/pforret/bashew bashew_version
 script_version="0.0.1" # if there is a VERSION.md in this script's folder, it will take priority for version number
 readonly script_author="author@email.com"
 readonly script_created="meta_today"
@@ -606,9 +607,6 @@ lookup_script_data() {
   debug "Last modif : $script_modified"
   debug "Script ID  : $script_lines lines / md5: $script_hash"
 
-  # get script version from VERSION.md file - which is automatically updated by pforret/setver
-  [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
-
   # if run inside a git repo, detect for which remote repo it is
   if git status &>/dev/null; then
     readonly git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
@@ -619,6 +617,11 @@ lookup_script_data() {
     readonly git_repo_root=""
     readonly git_repo_remote=""
   fi
+
+  # get script version from VERSION.md file - which is automatically updated by pforret/setver
+  [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
+  # get script version from git tag file - which is automatically updated by pforret/setver
+  [[ -n "$git_repo_root" ]] && [[ -n "$(git tag &> /dev/null)" ]] && script_version=$(git tag --sort=version:refname | tail -1)
 }
 
 prep_log_and_temp_dir() {

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 ### Created by author_name ( author_username ) on meta_today
+### Based on https://github.com/pforret/bashew bashew_version
 readonly script_author="author@email.com"
 readonly script_created="meta_today"
 readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
