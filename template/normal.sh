@@ -342,8 +342,6 @@ init_options() {
 }
 
 require_binaries() {
-  os_name=$(uname -s)
-  os_version=$(uname -prm)
   debug "Running: $os_name ($os_version)"
   [[ -n "${ZSH_VERSION:-}" ]] && debug "Running: zsh $ZSH_VERSION"
   [[ -n "${BASH_VERSION:-}" ]] && debug "Running: bash $BASH_VERSION"
