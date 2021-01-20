@@ -16,32 +16,44 @@ readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUS
 
 list_options() {
   ### Change the next lines to reflect which flags/options/parameters you need
-  ### flag:   switch a flag 'on' / no extra parameter
+  ### flag:   switch a flag 'on' / no value specified
   ###     flag|<short>|<long>|<description>
   ###     e.g. "-v" or "--verbose" for verbose output / default is always 'off'
-  ### option: set an option value / 1 extra parameter
+  ###     will be available as $<long> in the script e.g. $verbose
+  ### option: set an option / 1 value specified
   ###     option|<short>|<long>|<description>|<default>
   ###     e.g. "-e <extension>" or "--extension <extension>" for a file extension
+  ###     will be available a $<long> in the script e.g. $extension
+  ### list: add an list/array item / 1 value specified
+  ###     list|<short>|<long>|<description>| (default is ignored)
+  ###     e.g. "-u <user1> -u <user2>" or "--user <user1> --user <user2>"
+  ###     will be available a $<long> array in the script e.g. ${user[@]}
   ### param:  comes after the options
   ###     param|<type>|<long>|<description>
   ###     <type> = 1 for single parameters - e.g. param|1|output expects 1 parameter <output>
   ###     <type> = ? for optional parameters - e.g. param|1|output expects 1 parameter <output>
   ###     <type> = n for list parameter    - e.g. param|n|inputs expects <input1> <input2> ... <input99>
+  ###     will be available as $<long> in the script after option/param parsing
   echo -n "
 #commented lines will be filtered
 flag|h|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
+
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|.tmp
 option|w|width|width to use|800
+
+list|u|user|user(s) to execute this for
+
+secret|p|password|password to use
+
 param|1|action|action to perform: analyze/convert
 param|?|input|input file
 param|?|output|output file
 " |
-    grep -v '^#' |
-    sort
+    grep -v '^#'
 }
 
 list_dependencies() {
@@ -65,21 +77,44 @@ curl
 #####################################################################
 
 main() {
-  debug "Program: $script_basename $script_version"
-  debug "Created: $script_created"
-  debug "Updated: $script_modified"
-  debug "Run as : $USER@$HOSTNAME"
-
   require_binaries
   log_to_file "[$script_basename] $script_version started"
 
   action=$(lower_case "$action")
   case $action in
   check)
-    #TIP: use «$script_prefix check» to check if this script is ready to execute (all necessary binaries/scripts exist)
+    #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
     #TIP:> $script_prefix check
-    echo -n "$char_succ Dependencies: "
+    echo -n "$char_succ Check dependencies: "
     list_dependencies | cut -d'|' -f1 | sort | xargs
+    echo -n "$char_succ Check flags       : "
+    list_options | grep 'flag|' | cut -d'|' -f3 | sort |
+      while read -r name; do
+        [[ -z "$name" ]] && continue
+        eval "echo -n \"$name=\$${name:-}  \""
+      done
+    echo " "
+    echo -n "$char_succ Check options     : "
+    list_options | grep 'option|' | cut -d'|' -f3 | sort |
+      while read -r name; do
+        [[ -z "$name" ]] && continue
+        eval "echo -n \"$name=\\\"\$${name:-}\\\"  \""
+      done
+    echo " "
+    echo -n "$char_succ Check arrays      : "
+    list_options | grep 'list|' | cut -d'|' -f3 | sort |
+      while read -r name; do
+        [[ -z "$name" ]] && continue
+        eval "echo -n \"$name=(\${${name}[@]})  \""
+      done
+    echo " "
+    echo -n "$char_succ Check parameters  : "
+    list_options | grep 'param|' | cut -d'|' -f3 | sort |
+      while read -r name; do
+        [[ -z "$name" ]] && continue
+        eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+      done
+    echo " "
     ;;
 
   analyze)
@@ -182,8 +217,8 @@ initialise_output() {
   readonly wprogress=$((nbcols - 5))
 }
 
-out() { ((quiet)) || printf '%b\n' "$*"; }
-debug() { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2; }
+out() { ((quiet)) && true || printf '%b\n' "$*"; }
+debug() { if ((verbose)) ; then out "${col_ylw}# $* ${col_reset}" >&2 ; else true ; fi; }
 die() {
   out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
   tput bel
@@ -213,7 +248,6 @@ upper_case() { echo "$*" | awk '{print toupper($0)}'; }
 
 slugify() {
   # shellcheck disable=SC2020
-
   lower_case "$*" |
     tr \
       'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' \
@@ -287,8 +321,13 @@ show_usage() {
     if($5!=""){fulltext = fulltext "  [default: " $5 "]"; }
     oneline  = oneline " [-" $2 " <" $3 ">]"
     }
+  $1 ~ /list/  {
+    fulltext = fulltext sprintf("\n    -%1s|--%-12s: [list] %s (array)",$2,$3 " <?>",$4) ;
+    fulltext = fulltext "  [default empty]";
+    oneline  = oneline " [-" $2 " <" $3 ">]"
+    }
   $1 ~ /secret/  {
-    fulltext = fulltext sprintf("\n    -%1s|--%s <%s>: [secr] %s",$2,$3,"?",$4) ;
+    fulltext = fulltext sprintf("\n    -%1s|--%s <%s>: [secret] %s",$2,$3,"?",$4) ;
       oneline  = oneline " [-" $2 " <" $3 ">]"
     }
   $1 ~ /param/ {
@@ -335,74 +374,21 @@ init_options() {
     $1 ~ /flag/   && $5 != "" {print $3 "=\"" $5 "\"; "}
     $1 ~ /option/ && $5 == "" {print $3 "=\"\"; "}
     $1 ~ /option/ && $5 != "" {print $3 "=\"" $5 "\"; "}
+    $1 ~ /list/ {print $3 "=(); "}
+    $1 ~ /secret/ {print $3 "=\"\"; "}
     ')
   if [[ -n "$init_command" ]]; then
     eval "$init_command"
   fi
 }
 
-require_binaries() {
-  debug "Running: $os_name ($os_version)"
-  [[ -n "${ZSH_VERSION:-}" ]] && debug "Running: zsh $ZSH_VERSION"
-  [[ -n "${BASH_VERSION:-}" ]] && debug "Running: bash $BASH_VERSION"
-  local required_binary
-  local install_instructions
-
-  while read -r line; do
-    required_binary=$(echo "$line" | cut -d'|' -f1)
-    [[ -z "$required_binary" ]] && continue
-    # shellcheck disable=SC2230
-    debug "Check for existence of [$required_binary]"
-    [[ -n $(which "$required_binary") ]] && continue
-    required_package=$(echo "$line" | cut -d'|' -f2)
-    if [[ $(echo "$required_package" | wc -w) -gt 1 ]]; then
-      # example: setver|basher install setver
-      install_instructions="$required_package"
-    else
-      [[ -z "$required_package" ]] && required_package="$required_binary"
-      if [[ -n "$install_package" ]]; then
-        install_instructions="$install_package $required_package"
-      else
-        install_instructions="(install $required_package with your package manager)"
-      fi
-    fi
-    alert "$script_basename needs [$required_binary] but it cannot be found"
-    alert "1) install package  : $install_instructions"
-    alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
-    die "Missing program/script [$required_binary]"
-  done < <(list_dependencies)
-}
-
-folder_prep() {
-  if [[ -n "$1" ]]; then
-    local folder="$1"
-    local max_days=${2:-365}
-    if [[ ! -d "$folder" ]]; then
-      debug "Create folder : [$folder]"
-      mkdir -p "$folder"
-    else
-      debug "Cleanup folder: [$folder] - delete files older than $max_days day(s)"
-      find "$folder" -mtime "+$max_days" -type f -exec rm {} \;
-    fi
-  fi
-}
-
-expects_single_params() {
-  list_options | grep 'param|1|' >/dev/null
-}
-expects_optional_params() {
-  list_options | grep 'param|?|' >/dev/null
-}
-expects_multi_param() {
-  list_options | grep 'param|n|' >/dev/null
-}
-
-count_words() {
-  wc -w |
-    awk '{ gsub(/ /,""); print}'
-}
+expects_single_params() { list_options | grep 'param|1|' >/dev/null; }
+expects_optional_params() { list_options | grep 'param|?|' >/dev/null; }
+expects_multi_param() { list_options | grep 'param|n|' >/dev/null; }
 
 parse_options() {
+  local config_icon="[c]"
+  ((unicode)) && config_icon="💋"
   if [[ $# -eq 0 ]]; then
     show_usage >&2
     safe_exit
@@ -428,16 +414,18 @@ parse_options() {
         $1 ~ /flag/   && "--"$3 == opt {print $3"=1"}
         $1 ~ /option/ &&  "-"$2 == opt {print $3"=$2; shift"}
         $1 ~ /option/ && "--"$3 == opt {print $3"=$2; shift"}
-        $1 ~ /secret/ &&  "-"$2 == opt {print $3"=$2; shift"}
-        $1 ~ /secret/ && "--"$3 == opt {print $3"=$2; shift"}
+        $1 ~ /list/ &&  "-"$2 == opt {print $3"+=($2); shift"}
+        $1 ~ /list/ && "--"$3 == opt {print $3"=($2); shift"}
+        $1 ~ /secret/ &&  "-"$2 == opt {print $3"=$2; shift #noshow"}
+        $1 ~ /secret/ && "--"$3 == opt {print $3"=$2; shift #noshow"}
         ')
     if [[ -n "$save_option" ]]; then
       if echo "$save_option" | grep shift >>/dev/null; then
         local save_var
         save_var=$(echo "$save_option" | cut -d= -f1)
-        debug "Found  : ${save_var}=$2"
+        debug "$config_icon parameter: ${save_var}=$2"
       else
-        debug "Found  : $save_option"
+        debug "$config_icon flag: $save_option"
       fi
       eval "$save_option"
     else
@@ -460,18 +448,18 @@ parse_options() {
     single_params=$(list_options | grep 'param|1|' | cut -d'|' -f3)
     list_singles=$(echo "$single_params" | xargs)
     single_count=$(echo "$single_params" | count_words)
-    debug "Expect : $single_count single parameter(s): $list_singles"
+    debug "$config_icon Expect : $single_count single parameter(s): $list_singles"
     [[ $# -eq 0 ]] && die "need the parameter(s) [$list_singles]"
 
     for param in $single_params; do
       [[ $# -eq 0 ]] && die "need parameter [$param]"
       [[ -z "$1" ]] && die "need parameter [$param]"
-      debug "Assign : $param=$1"
+      debug "$config_icon  Assign : $param=$1"
       eval "$param=\"$1\""
       shift
     done
   else
-    debug "No single params to process"
+    debug "$config_icon No single params to process"
     single_params=""
     single_count=0
   fi
@@ -479,15 +467,15 @@ parse_options() {
   if expects_optional_params; then
     optional_params=$(list_options | grep 'param|?|' | cut -d'|' -f3)
     optional_count=$(echo "$optional_params" | count_words)
-    debug "Expect : $optional_count optional parameter(s): $(echo "$optional_params" | xargs)"
+    debug "$config_icon Expect : $optional_count optional parameter(s): $(echo "$optional_params" | xargs)"
 
     for param in $optional_params; do
-      debug "Assign : $param=${1:-}"
+      debug "$config_icon Assign : $param=${1:-}"
       eval "$param=\"${1:-}\""
       shift
     done
   else
-    debug "No optional params to process"
+    debug "$config_icon No optional params to process"
     optional_params=""
     optional_count=0
   fi
@@ -496,12 +484,12 @@ parse_options() {
     #debug "Process: multi param"
     multi_count=$(list_options | grep -c 'param|n|')
     multi_param=$(list_options | grep 'param|n|' | cut -d'|' -f3)
-    debug "Expect : $multi_count multi parameter: $multi_param"
+    debug "$config_icon Expect : $multi_count multi parameter: $multi_param"
     ((multi_count > 1)) && die "cannot have >1 'multi' parameter: [$multi_param]"
     ((multi_count > 0)) && [[ $# -eq 0 ]] && die "need the (multi) parameter [$multi_param]"
     # save the rest of the params in the multi param
     if [[ -n "$*" ]]; then
-      debug "Assign : $multi_param=$*"
+      debug "$config_icon Assign : $multi_param=$*"
       eval "$multi_param=( $* )"
     fi
   else
@@ -510,6 +498,57 @@ parse_options() {
     [[ $# -gt 0 ]] && die "cannot interpret extra parameters"
   fi
 }
+
+require_binaries() {
+  local required_binary
+  local install_instructions
+  local require_icon="[r]"
+  ((unicode)) && require_icon="🔧"
+
+  while read -r line; do
+    required_binary=$(echo "$line" | cut -d'|' -f1)
+    [[ -z "$required_binary" ]] && continue
+    # shellcheck disable=SC2230
+    path_binary=$(which "$required_binary" 2>/dev/null)
+    [[ -n "$path_binary" ]] && debug "️$require_icon required [$required_binary] -> $path_binary"
+    [[ -n "$path_binary" ]] && continue
+    required_package=$(echo "$line" | cut -d'|' -f2)
+    if [[ $(echo "$required_package" | wc -w) -gt 1 ]]; then
+      # example: setver|basher install setver
+      install_instructions="$required_package"
+    else
+      [[ -z "$required_package" ]] && required_package="$required_binary"
+      if [[ -n "$install_package" ]]; then
+        install_instructions="$install_package $required_package"
+      else
+        install_instructions="(install $required_package with your package manager)"
+      fi
+    fi
+    alert "$script_basename needs [$required_binary] but it cannot be found"
+    alert "1) install package  : $install_instructions"
+    alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
+    die "Missing program/script [$required_binary]"
+  done < <(list_dependencies)
+}
+
+folder_prep() {
+  local clean_icon="[c]"
+  ((unicode)) && clean_icon="🧹"
+
+  if [[ -n "$1" ]]; then
+    local folder="$1"
+    local max_days=${2:-365}
+    if [[ ! -d "$folder" ]]; then
+      debug "$clean_icon Create folder : [$folder]"
+      mkdir -p "$folder"
+    else
+      debug "$clean_icon Cleanup folder: [$folder] - delete files older than $max_days day(s)"
+      find "$folder" -mtime "+$max_days" -type f -exec rm {} \;
+    fi
+  fi
+}
+
+count_words() { wc -w | awk '{ gsub(/ /,""); print}'; }
 
 recursive_readlink() {
   [[ ! -L "$1" ]] && echo "$1" && return 0
@@ -534,11 +573,13 @@ lookup_script_data() {
   readonly script_basename=$(basename "${BASH_SOURCE[0]}")
   readonly execution_day=$(date "+%Y-%m-%d")
   #readonly execution_year=$(date "+%Y")
+  local info_icon="(i)"
+  ((unicode)) && info_icon="👁️"
 
   script_install_path="${BASH_SOURCE[0]}"
-  debug "Script path: $script_install_path"
+  debug "$info_icon Script path: $script_install_path"
   script_install_path=$(recursive_readlink "$script_install_path")
-  debug "Actual path: $script_install_path"
+  debug "$info_icon Actual path: $script_install_path"
   readonly script_install_folder="$(dirname "$script_install_path")"
   if [[ -f "$script_install_path" ]]; then
     script_hash=$(hash <"$script_install_path" 8)
@@ -556,7 +597,7 @@ lookup_script_data() {
   [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
   [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
   [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
-  debug "Shell type : $shell_brand - version $shell_version"
+  debug "$info_icon Shell type : $shell_brand - version $shell_version"
 
   readonly os_kernel=$(uname -s)
   os_version=$(uname -r)
@@ -594,23 +635,25 @@ lookup_script_data() {
     ;;
 
   esac
-  debug "System OS  : $os_name ($os_kernel) $os_version on $os_machine"
-  debug "Package mgt: $install_package"
+  debug "$info_icon System OS  : $os_name ($os_kernel) $os_version on $os_machine"
+  debug "$info_icon Package mgt: $install_package"
 
   # get last modified date of this script
   script_modified="??"
   [[ "$os_kernel" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
   [[ "$os_kernel" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
 
-  debug "Last modif : $script_modified"
-  debug "Script ID  : $script_lines lines / md5: $script_hash"
+  debug "$info_icon Last modif : $script_modified"
+  debug "$info_icon Script ID  : $script_lines lines / md5: $script_hash"
+  debug "$info_icon Creation   : $script_created"
+  debug "$info_icon Running as : $USER@$HOSTNAME"
 
   # if run inside a git repo, detect for which remote repo it is
   if git status &>/dev/null; then
     readonly git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
-    debug "git remote : $git_repo_remote"
+    debug "$info_icon git remote : $git_repo_remote"
     readonly git_repo_root=$(git rev-parse --show-toplevel)
-    debug "git folder : $git_repo_root"
+    debug "$info_icon git folder : $git_repo_root"
   else
     readonly git_repo_root=""
     readonly git_repo_remote=""
@@ -619,39 +662,43 @@ lookup_script_data() {
   # get script version from VERSION.md file - which is automatically updated by pforret/setver
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
   # get script version from git tag file - which is automatically updated by pforret/setver
-  [[ -n "$git_repo_root" ]] && [[ -n "$(git tag &> /dev/null)" ]] && script_version=$(git tag --sort=version:refname | tail -1)
+  [[ -n "$git_repo_root" ]] && [[ -n "$(git tag &>/dev/null)" ]] && script_version=$(git tag --sort=version:refname | tail -1)
 }
 
 prep_log_and_temp_dir() {
   tmp_file=""
   log_file=""
+  local config_icon="[c]"
+  ((unicode)) && config_icon="💋"
   if [[ -n "${tmp_dir:-}" ]]; then
     folder_prep "$tmp_dir" 1
     tmp_file=$(mktemp "$tmp_dir/$execution_day.XXXXXX")
-    debug "tmp_file: $tmp_file"
+    debug "$config_icon tmp_file: $tmp_file"
     # you can use this temporary file in your program
     # it will be deleted automatically if the program ends without problems
   fi
   if [[ -n "${log_dir:-}" ]]; then
     folder_prep "$log_dir" 7
-    log_file=$log_dir/$script_prefix.$execution_day.log
-    debug "log_file: $log_file"
+    log_file="$log_dir/$script_prefix.$execution_day.log"
+    debug "$config_icon log_file: $log_file"
   fi
 }
 
 import_env_if_any() {
   env_files=("$script_install_folder/.env" "$script_install_folder/$script_prefix.env" "./.env" "./$script_prefix.env")
+  local config_icon="[c]"
+  ((unicode)) && config_icon="💋"
 
   for env_file in "${env_files[@]}"; do
     if [[ -f "$env_file" ]]; then
-      debug "Read config from [$env_file]"
+      debug "$config_icon Read config from [$env_file]"
       # shellcheck disable=SC1090
       source "$env_file"
     fi
   done
 }
 
-[[ $run_as_root == 1 ]]  && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
+[[ $run_as_root == 1 ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
 initialise_output  # output settings

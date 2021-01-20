@@ -53,4 +53,10 @@ test_small1_should_show_option_verbose() {
   assert_equals 1 "$("$template_folder/small.sh" -h 2>&1 | grep -c "verbose")"
 }
 
+test_normal2_check_works() {
+  # script without parameters should give usage info
+  assert_equals 1 "$("$template_folder/normal.sh" check 2>&1 | grep -c "verbose=")"
+  assert_equals 1 "$("$template_folder/normal.sh" check 2>&1 | grep -c "log_dir=")"
+  assert_equals 1 "$("$template_folder/normal.sh" check 2>&1 | grep -c "action=")"
+}
 
