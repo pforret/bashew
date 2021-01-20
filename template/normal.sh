@@ -53,7 +53,8 @@ param|1|action|action to perform: analyze/convert
 param|?|input|input file
 param|?|output|output file
 " |
-    grep -v '^#'
+    grep -v '^#' |
+    grep -v '^\s*$'
 }
 
 list_dependencies() {
@@ -85,36 +86,7 @@ main() {
   check)
     #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
     #TIP:> $script_prefix check
-    echo -n "$char_succ Check dependencies: "
-    list_dependencies | cut -d'|' -f1 | sort | xargs
-    echo -n "$char_succ Check flags       : "
-    list_options | grep 'flag|' | cut -d'|' -f3 | sort |
-      while read -r name; do
-        [[ -z "$name" ]] && continue
-        eval "echo -n \"$name=\$${name:-}  \""
-      done
-    echo " "
-    echo -n "$char_succ Check options     : "
-    list_options | grep 'option|' | cut -d'|' -f3 | sort |
-      while read -r name; do
-        [[ -z "$name" ]] && continue
-        eval "echo -n \"$name=\\\"\$${name:-}\\\"  \""
-      done
-    echo " "
-    echo -n "$char_succ Check arrays      : "
-    list_options | grep 'list|' | cut -d'|' -f3 | sort |
-      while read -r name; do
-        [[ -z "$name" ]] && continue
-        eval "echo -n \"$name=(\${${name}[@]})  \""
-      done
-    echo " "
-    echo -n "$char_succ Check parameters  : "
-    list_options | grep 'param|' | cut -d'|' -f3 | sort |
-      while read -r name; do
-        [[ -z "$name" ]] && continue
-        eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
-      done
-    echo " "
+    do_check
     ;;
 
   analyze)
@@ -152,6 +124,42 @@ do_analyze() {
 do_convert() {
   log_to_file "Convert [$input] -> [$output]"
   # < "$1"  do_conversion_stuff > "$2"
+}
+
+do_check(){
+    echo -n "$char_succ Check dependencies: "
+    list_dependencies | cut -d'|' -f1 | sort | xargs
+    echo -n "$char_succ Check flags       : "
+    list_options | grep 'flag|' | cut -d'|' -f3 | sort |
+      while read -r name; do
+        [[ -z "$name" ]] && continue
+        eval "echo -n \"$name=\$${name:-}  \""
+      done
+    echo " "
+
+    echo -n "$char_succ Check options     : "
+    list_options | grep 'option|' | cut -d'|' -f3 | sort |
+      while read -r name; do
+        [[ -z "$name" ]] && continue
+        eval "echo -n \"$name=\\\"\$${name:-}\\\"  \""
+      done
+    echo " "
+
+    echo -n "$char_succ Check arrays      : "
+    list_options | grep 'list|' | cut -d'|' -f3 | sort |
+      while read -r name; do
+        [[ -z "$name" ]] && continue
+        eval "echo -n \"$name=(\${${name}[@]})  \""
+      done
+    echo " "
+
+    echo -n "$char_succ Check parameters  : "
+    list_options | grep 'param|' | cut -d'|' -f3 | sort |
+      while read -r name; do
+        [[ -z "$name" ]] && continue
+        eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+      done
+    echo " "
 }
 
 #####################################################################
@@ -205,11 +213,19 @@ initialise_output() {
     char_fail="✖"
     char_alrt="➨"
     char_wait="…"
+    info_icon="🔎"
+    config_icon="🖌️"
+    clean_icon="🧹"
+    require_icon="📎"
   else
     char_succ="OK "
     char_fail="!! "
     char_alrt="?? "
     char_wait="..."
+    info_icon="(i)"
+    config_icon="[c]"
+    clean_icon="[c]"
+    require_icon="[r]"
   fi
   error_prefix="${col_red}>${col_reset}"
 
@@ -368,6 +384,7 @@ show_tips() {
 init_options() {
   local init_command
   init_command=$(list_options |
+    grep -v "verbose|" |
     awk '
     BEGIN { FS="|"; OFS=" ";}
     $1 ~ /flag/   && $5 == "" {print $3 "=0; "}
@@ -387,8 +404,6 @@ expects_optional_params() { list_options | grep 'param|?|' >/dev/null; }
 expects_multi_param() { list_options | grep 'param|n|' >/dev/null; }
 
 parse_options() {
-  local config_icon="[c]"
-  ((unicode)) && config_icon="💋"
   if [[ $# -eq 0 ]]; then
     show_usage >&2
     safe_exit
@@ -454,7 +469,7 @@ parse_options() {
     for param in $single_params; do
       [[ $# -eq 0 ]] && die "need parameter [$param]"
       [[ -z "$1" ]] && die "need parameter [$param]"
-      debug "$config_icon  Assign : $param=$1"
+      debug "$config_icon Assign : $param=$1"
       eval "$param=\"$1\""
       shift
     done
@@ -502,8 +517,6 @@ parse_options() {
 require_binaries() {
   local required_binary
   local install_instructions
-  local require_icon="[r]"
-  ((unicode)) && require_icon="🔧"
 
   while read -r line; do
     required_binary=$(echo "$line" | cut -d'|' -f1)
@@ -532,8 +545,6 @@ require_binaries() {
 }
 
 folder_prep() {
-  local clean_icon="[c]"
-  ((unicode)) && clean_icon="🧹"
 
   if [[ -n "$1" ]]; then
     local folder="$1"
@@ -564,7 +575,7 @@ recursive_readlink() {
   link_name=$(basename "$symlink")
   [[ -z "$link_folder" ]] && link_folder="$file_folder"
   [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &>/dev/null && pwd)"
-  debug "Symbolic ln: $1 -> [$symlink]"
+  debug "$info_icon Symbolic ln: $1 -> [$symlink]"
   recursive_readlink "$link_folder/$link_name"
 }
 
@@ -573,8 +584,6 @@ lookup_script_data() {
   readonly script_basename=$(basename "${BASH_SOURCE[0]}")
   readonly execution_day=$(date "+%Y-%m-%d")
   #readonly execution_year=$(date "+%Y")
-  local info_icon="(i)"
-  ((unicode)) && info_icon="👁️"
 
   script_install_path="${BASH_SOURCE[0]}"
   debug "$info_icon Script path: $script_install_path"
@@ -668,8 +677,6 @@ lookup_script_data() {
 prep_log_and_temp_dir() {
   tmp_file=""
   log_file=""
-  local config_icon="[c]"
-  ((unicode)) && config_icon="💋"
   if [[ -n "${tmp_dir:-}" ]]; then
     folder_prep "$tmp_dir" 1
     tmp_file=$(mktemp "$tmp_dir/$execution_day.XXXXXX")
@@ -686,8 +693,6 @@ prep_log_and_temp_dir() {
 
 import_env_if_any() {
   env_files=("$script_install_folder/.env" "$script_install_folder/$script_prefix.env" "./.env" "./$script_prefix.env")
-  local config_icon="[c]"
-  ((unicode)) && config_icon="💋"
 
   for env_file in "${env_files[@]}"; do
     if [[ -f "$env_file" ]]; then
