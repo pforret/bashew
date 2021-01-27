@@ -266,12 +266,11 @@ slugify() {
   # shellcheck disable=SC2020
   echo "${1,,}" | xargs | tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
   awk '{
-    gsub(/https?/,"",$0); gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=]/," ",$0);
-    gsub(/^  */,"",$0); gsub(/  *$/,"",$0); gsub(/  */,"-",$0);
+    gsub(/https?/,"",$0); gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_]/," ",$0);
+    gsub(/^  */,"",$0); gsub(/  *$/,"",$0); gsub(/  */,"-",$0); gsub(/[^a-z0-9\-]/,"");
     print;
-    }' |
-  cut -c1-50
-  }
+    }' | cut -c1-50
+}
 
 confirm() {
   # $1 = question
