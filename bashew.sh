@@ -37,7 +37,7 @@ get_author_data() {
 
   # if there is prior data, use that
   [[ -n ${BASHEW_AUTHOR_FULLNAME:-} ]] && guess_fullname="$BASHEW_AUTHOR_FULLNAME"
-  [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]]    && guess_email="$BASHEW_AUTHOR_EMAIL"
+  [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]] && guess_email="$BASHEW_AUTHOR_EMAIL"
   [[ -n ${BASHEW_AUTHOR_USERNAME:-} ]] && guess_username="$BASHEW_AUTHOR_USERNAME"
 
   # if there is git config data, use that
@@ -51,7 +51,7 @@ get_author_data() {
     guess_username=$(basename "$guess_username")
   fi
 
-  if ((force)) ; then
+  if ((force)); then
     author_fullname="$guess_fullname"
     author_email="$guess_email"
     author_username="$guess_username"
@@ -61,7 +61,7 @@ get_author_data() {
   else
     announce "1. first we need the information of the author"
     author_fullname=$(ask "Author full name        " "$guess_fullname")
-    author_email=$(   ask "Author email            " "$guess_email")
+    author_email=$(ask "Author email            " "$guess_email")
     author_username=$(ask "Author (github) username" "$guess_username")
     export BASHEW_AUTHOR_FULLNAME="$author_fullname"
     export BASHEW_AUTHOR_EMAIL="$author_email"
@@ -100,8 +100,8 @@ copy_and_replace() {
     gsub(/bashew_version/,bashew_version);
     print;
     }' \
-    < "$input" \
-    > "$output"
+    <"$input" \
+    >"$output"
 }
 
 random_word() {
@@ -114,20 +114,24 @@ random_word() {
     elif [[ -f /usr/dict/words ]]; then
       cat /usr/dict/words
     else
-      printf 'zero,one,two,three,four,five,six,seven,eight,nine,ten,alfa,bravo,charlie,delta,echo,foxtrot,golf,hotel,india,juliet,kilo,lima,mike,november,oscar,papa,quebec,romeo,sierra,tango,uniform,victor,whiskey,xray,yankee,zulu%.0s' {1..3000} \
-      | tr ',' "\n"
+      printf 'zero,one,two,three,four,five,six,seven,eight,nine,ten,alfa,bravo,charlie,delta,echo,foxtrot,golf,hotel,india,juliet,kilo,lima,mike,november,oscar,papa,quebec,romeo,sierra,tango,uniform,victor,whiskey,xray,yankee,zulu%.0s' {1..3000} |
+        tr ',' "\n"
     fi
-  ) \
-    | awk 'length($1) > 2 && length($1) < 8 {print}' \
-    | grep -v "'" \
-    | grep -v " " \
-    | awk "NR == $RANDOM {print tolower(\$0)}"
+  ) |
+    awk 'length($1) > 2 && length($1) < 8 {print}' |
+    grep -v "'" |
+    grep -v " " |
+    awk "NR == $RANDOM {print tolower(\$0)}"
 }
 
-delete_folder(){
-  if [[ -d "$1" ]] ; then
+delete_stuff() {
+  if [[ -d "$1" ]]; then
     log "Delete folder [$1]"
     rm -fr "$1"
+  fi
+  if [[ -f "$1" ]]; then
+    log "Delete file [$1]"
+    rm "$1"
   fi
 }
 #####################################################################
@@ -166,12 +170,12 @@ main() {
       random_name="$(random_word)_$(random_word)"
       get_author_data "./$random_name"
     fi
-    if [[ ! -d "$new_name" ]] ; then
+    if [[ ! -d "$new_name" ]]; then
       announce "Creating project $new_name ..."
       mkdir "$new_name"
       template_folder="$script_install_folder/template"
       ## first do all files that can change
-      for file in "$template_folder"/*.md "$template_folder/LICENSE" "$template_folder"/.gitignore "$template_folder"/.env.example  ; do
+      for file in "$template_folder"/*.md "$template_folder/LICENSE" "$template_folder"/.gitignore "$template_folder"/.env.example; do
         bfile=$(basename "$file")
         ((quiet)) || echo -n "$bfile "
         new_file="$new_name/$bfile"
@@ -181,18 +185,18 @@ main() {
       copy_and_replace "$template_folder/$model.sh" "$new_name/$clean_name.sh"
       chmod +x "$new_name/$clean_name.sh"
       ## now the CI/CD files
-      if [[ -f "$template_folder/bitbucket-pipelines.yml" ]] ; then
+      if [[ -f "$template_folder/bitbucket-pipelines.yml" ]]; then
         ((quiet)) || echo -n "bitbucket-pipelines "
         cp "$template_folder/bitbucket-pipelines.yml" "$new_name/"
       fi
-      if [[ -d "$template_folder/.github" ]] ; then
+      if [[ -d "$template_folder/.github" ]]; then
         ((quiet)) || echo -n ".github "
         cp -r "$template_folder/.github" "$new_name/.github"
       fi
 
       ((quiet)) || echo " "
-      if confirm "Do you want to 'git init' the new project?" ; then
-        ( pushd "$new_name" && git init && git add . && popd || return) > /dev/null 2>&1
+      if confirm "Do you want to 'git init' the new project?"; then
+        (pushd "$new_name" && git init && git add . && popd || return) >/dev/null 2>&1
       fi
       success "next step: 'cd $new_name' and start scripting!"
     else
@@ -209,7 +213,7 @@ main() {
     get_author_data "./$new_name"
     announce "Creating script $new_name ..."
     # shellcheck disable=SC2154
-    for file in template/*.md template/LICENSE template/.gitignore template/.gitignore  ; do
+    for file in template/*.md template/LICENSE template/.gitignore template/.gitignore; do
       bfile=$(basename "$file")
       ((quiet)) || echo -n "$bfile "
       new_file="./$bfile"
@@ -222,23 +226,26 @@ main() {
     alt_dir=$(dirname "$new_name")
     alt_base=$(basename "$new_name" .sh)
     alt_name="$alt_dir/$alt_base"
-    if [[ ! "$alt_name" == "$new_name" ]] ; then
+    if [[ ! "$alt_name" == "$new_name" ]]; then
       # create a "do_this" alias for "do_this.sh"
       ln -s "$new_name" "$alt_name"
       git add "$alt_name"
     fi
     announce "Now cleaning up unnecessary bashew files ..."
-    delete_folder template
-    delete_folder assets
-    delete_folder .tmp
-    delete_folder log
-    for remove in tests/test_script.sh tests/test_sourced.sh ; do
-        [[ -f "$remove" ]] && rm "$remove"
-    done
+    delete_stuff template
+    delete_stuff tests/disabled
+    delete_stuff tests/test_bashew.sh
+    delete_stuff assets
+    delete_stuff .tmp
+    delete_stuff log
     log "Delete script [bashew.sh] ..."
-    ( sleep 1 ; rm -f bashew.sh bashew ) & # delete will happen after the script is finished
-    success "script $new_name created"
-    success "proceed with: git commit -a -m 'after bashew init' && git push"
+    (
+      sleep 1
+      rm -f bashew.sh bashew
+    ) &# delete will happen after the script is finished
+    success "script $new_name created!"
+    success "now do: ${col_ylw}git commit -a -m 'after bashew init' && git push${col_reset}"
+    out "tip: install ${col_ylw}basher${col_reset} and ${col_ylw}pforret/setver${col_reset} for easy bash script version management"
     ;;
 
   update)
@@ -271,7 +278,7 @@ main() {
     is_set "$force" && out "force=$force (true)" || out "force=$force (false)"
     ;;
 
-    *)
+  *)
 
     die "param [$action] not recognized"
     ;;
@@ -286,10 +293,10 @@ main() {
 set -uo pipefail
 IFS=$'\n\t'
 # shellcheck disable=SC2120
-hash(){
+hash() {
   length=${1:-6}
   # shellcheck disable=SC2230
-  if [[ -n $(which md5sum) ]] ; then
+  if [[ -n $(which md5sum) ]]; then
     # regular linux
     md5sum | cut -c1-"$length"
   else
@@ -357,7 +364,10 @@ die() {
 
 alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; } # print error and continue
 success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
-announce() { out "${col_grn}${char_wait}${col_reset}  $*" ; sleep 1 ;}
+announce() {
+  out "${col_grn}${char_wait}${col_reset}  $*"
+  sleep 1
+}
 log() { ((verbose)) && out "${col_ylw}# $* ${col_reset}" >&2; }
 
 escape() { echo "$*" | sed 's/\//\\\//g'; }
@@ -599,20 +609,20 @@ parse_options() {
 tmpfile=""
 logfile=""
 
-recursive_readlink(){
-  [[ ! -h "$1" ]] && echo "$1" && return 0
+recursive_readlink() {
+  [[ ! -L "$1" ]] && echo "$1" && return 0
   local file_folder
   local link_folder
   local link_name
   file_folder="$(dirname "$1")"
   # resolve relative to absolute path
   [[ "$file_folder" != /* ]] && link_folder="$(cd -P "$file_folder" >/dev/null 2>&1 && pwd)"
-  local  symlink
+  local symlink
   symlink=$(readlink "$1")
   link_folder=$(dirname "$symlink")
   link_name=$(basename "$symlink")
   [[ -z "$link_folder" ]] && link_folder="$file_folder"
-  [[ "$link_folder" = \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" >/dev/null 2>&1 && pwd)"
+  [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" >/dev/null 2>&1 && pwd)"
   log "Symbolic ln: $1 -> [$symlink]"
   recursive_readlink "$link_folder/$link_name"
 }
@@ -631,38 +641,39 @@ lookup_script_data() {
 
   script_modified="??"
   os_uname=$(uname -s)
-  [[ "$os_uname" == "Linux" ]]  && script_modified=$(stat -c "%y"  "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
-  [[ "$os_uname" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
+  [[ "$os_uname" == "Linux" ]] && script_modified=$(stat -c "%y" "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
+  [[ "$os_uname" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)            # for MacOS
 
   # get shell/operating system/versions
   shell_brand="sh"
   shell_version="?"
-  [[ -n "${ZSH_VERSION:-}" ]]  && shell_brand="zsh"  && shell_version="$ZSH_VERSION"
+  [[ -n "${ZSH_VERSION:-}" ]] && shell_brand="zsh" && shell_version="$ZSH_VERSION"
   [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
   [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
-  [[ -n "${KSH_VERSION:-}" ]]  && shell_brand="ksh"  && shell_version="$KSH_VERSION"
+  [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
   log "Shell type : $shell_brand - version $shell_version"
 
   readonly os_kernel=$(uname -s)
   os_version=$(uname -r)
   os_machine=$(uname -m)
   case "$os_kernel" in
-  CYGWIN*|MSYS*|MINGW*)
+  CYGWIN* | MSYS* | MINGW*)
     os_name="Windows"
     ;;
   Darwin)
-    os_name=$(sw_vers -productName) # macOS
+    os_name=$(sw_vers -productName)       # macOS
     os_version=$(sw_vers -productVersion) # 11.1
     ;;
-  Linux|GNU*)
-    if [[ $(which lsb_release) ]] ; then
+  Linux | GNU*)
+    if [[ $(which lsb_release) ]]; then
       # 'normal' Linux distributions
-      os_name=$(lsb_release -i) # Ubuntu
+      os_name=$(lsb_release -i)    # Ubuntu
       os_version=$(lsb_release -r) # 20.04
     else
       # Synology, QNAP,
       os_name="Linux"
     fi
+    ;;
   esac
   log "OS Version : $os_name ($os_kernel) $os_version on $os_machine"
 
