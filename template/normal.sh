@@ -264,19 +264,14 @@ upper_case() { echo "$*" | awk '{print toupper($0)}'; }
 
 slugify() {
   # shellcheck disable=SC2020
-  lower_case "$*" |
-    tr \
-      'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' \
-      'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
-    awk '{
-    gsub(/[^0-9a-z ]/,"");
-    gsub(/^\s+/,"");
-    gsub(/^s+$/,"");
-    gsub(" ","-");
+  echo "${1,,}" | xargs | tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
+  awk '{
+    gsub(/https?/,"",$0); gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=]/," ",$0);
+    gsub(/^  */,"",$0); gsub(/  *$/,"",$0); gsub(/  */,"-",$0);
     print;
     }' |
-    cut -c1-50
-}
+  cut -c1-50
+  }
 
 confirm() {
   # $1 = question
