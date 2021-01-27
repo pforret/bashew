@@ -229,10 +229,11 @@ main() {
     fi
     announce "Now cleaning up unnecessary bashew files ..."
     delete_folder template
+    delete_folder tests/disabled
     delete_folder assets
     delete_folder .tmp
     delete_folder log
-    for remove in tests/test_script.sh tests/test_sourced.sh ; do
+    for remove in tests/test_bashew.sh ; do
         [[ -f "$remove" ]] && rm "$remove"
     done
     log "Delete script [bashew.sh] ..."
