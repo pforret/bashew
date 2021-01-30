@@ -4,7 +4,9 @@
 
 ![latest tag:](https://img.shields.io/badge/latest-TAG:-white) [![version](https://img.shields.io/github/v/tag/pforret/bashew)](https://github.com/pforret/bashew/tags)
 /
-![latest release:](https://img.shields.io/badge/latest-RELEASE:-white) [![version](https://img.shields.io/github/v/release/pforret/bashew)](https://github.com/pforret/bashew/releases)
+latest release: [![version](https://img.shields.io/github/v/release/pforret/bashew)](https://github.com/pforret/bashew/releases)
+/
+Part of [![part of Bashful Scripting network](https://img.shields.io/badge/bashful-scripting-orange)](https://blog.forret.com/portfolio/bashful/) network
 
 # bashew
 
