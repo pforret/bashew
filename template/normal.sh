@@ -61,6 +61,9 @@ list_dependencies() {
   echo -n "
 gawk
 curl
+#ffmpeg
+#convert|imagemagick
+#progressbar|basher install pforret/progressbar
 " | grep -v "^#" | grep -v '^\s*$'
 }
 
@@ -81,16 +84,19 @@ main() {
     do_action1 "$input"
     ;;
 
-  convert)
-    #TIP: use «$script_prefix convert» to convert input into output
-    #TIP:> $script_prefix convert input.txt output.pdf
+  action2)
+    #TIP: use «$script_prefix action2» to ...
+    #TIP:> $script_prefix action2 input.txt output.pdf
     # shellcheck disable=SC2154
     do_action2 "$input" "$output"
     ;;
 
-  check)
+  check|env)
+    ## leave this default action, it will make it easier to test your script
     #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
     #TIP:> $script_prefix check
+    #TIP: use «$script_prefix env» to generate an example .env file
+    #TIP:> $script_prefix env > .env
     do_check
     ;;
 
@@ -100,7 +106,7 @@ main() {
   esac
   log_to_file "[$script_basename] ended after $SECONDS secs"
   #TIP: >>> bash script created with «pforret/bashew»
-  #TIP: >>> for developers, also check «pforret/setver»
+  #TIP: >>> for bash development, also check out «pforret/setver» and «pforret/progressbar»
 }
 
 #####################################################################
@@ -108,80 +114,84 @@ main() {
 #####################################################################
 
 do_action1() {
-  log_to_file "Action1 [$input]"
-  # < "$1"  do_analysis_stuff
+  log_to_file "action1 [$input]"
+  # < "$1"  do_action1_stuff
 }
 
 do_action2() {
-  log_to_file "Action2 [$input] -> [$output]"
-  # < "$1"  do_conversion_stuff > "$2"
+  log_to_file "action2 [$input] -> [$output]"
+  # < "$1"  do_action2_stuff > "$2"
 }
 
-do_check(){
-    out "## dependencies: "
+do_check() {
+    ## leave this default action, it will make it easier to test your script
+  if ((piped)); then
+    debug "Skip dependencies for .env files"
+  else
+    out "## ${col_grn}dependencies${col_reset}: "
     out "$(list_dependencies | cut -d'|' -f1 | sort | xargs)"
     out " "
+  fi
 
-    if [[ -n $(filter_option_type flag) ]] ; then
-      out "## boolean flags"
-      filter_option_type flag |
+  if [[ -n $(filter_option_type flag) ]]; then
+    out "## ${col_grn}boolean flags${col_reset}:"
+    filter_option_type flag |
+      while read -r name; do
+        if ((piped)); then
+          eval "echo \"$name=\$${name:-}\""
+        else
+          eval "echo -n \"$name=\$${name:-}  \""
+        fi
+      done
+    out " "
+    out " "
+  fi
+
+  if [[ -n $(filter_option_type option) ]]; then
+    out "## ${col_grn}option defaults${col_reset}:"
+    filter_option_type option |
+      while read -r name; do
+        if ((piped)); then
+          eval "echo \"$name=\$${name:-}\""
+        else
+          eval "echo -n \"$name=\$${name:-}  \""
+        fi
+      done
+    out " "
+    out " "
+  fi
+
+  if [[ -n $(filter_option_type list) ]]; then
+    out "## ${col_grn}list options${col_reset}:"
+    filter_option_type list |
+      while read -r name; do
+        if ((piped)); then
+          eval "echo \"$name=(\${${name}[@]})\""
+        else
+          eval "echo -n \"$name=(\${${name}[@]})  \""
+        fi
+      done
+    out " "
+    out " "
+  fi
+
+  if [[ -n $(filter_option_type param) ]]; then
+    if ((piped)); then
+      debug "Skip parameters for .env files"
+    else
+      out "## ${col_grn}parameters${col_reset}:"
+      filter_option_type param |
         while read -r name; do
-          [[ -z "$name" ]] && continue
-          if ((piped)) ; then
-            eval "echo \"$name=\$${name:-}\""
-          else
-            eval "echo -n \"$name=\$${name:-}  \""
-          fi
+          # shellcheck disable=SC2015
+          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
         done
-      out " "
+      echo " "
     fi
-
-    if [[ -n $(filter_option_type option) ]] ; then
-      out "## text options"
-      filter_option_type option |
-        while read -r name; do
-          [[ -z "$name" ]] && continue
-          if ((piped)) ; then
-            eval "echo \"$name=\$${name:-}\""
-          else
-            eval "echo -n \"$name=\$${name:-}  \""
-          fi
-        done
-      out " "
-    fi
-
-    if [[ -n $(filter_option_type list) ]] ; then
-      out "## list options"
-      filter_option_type list |
-        while read -r name; do
-          [[ -z "$name" ]] && continue
-           if ((piped)) ; then
-            eval "echo \"$name=(\${${name}[@]})\""
-          else
-            eval "echo -n \"$name=(\${${name}[@]})  \""
-          fi
-        done
-      out " "
-    fi
-
-    if [[ -n $(filter_option_type param) ]] ; then
-      if ((piped)) ; then
-        echo ""
-      else
-        echo "## parameters"
-        filter_option_type param |
-          while read -r name; do
-            [[ -z "$name" ]] && continue
-            # shellcheck disable=SC2015
-            ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
-          done
-        echo " "
-      fi
-    fi
+  fi
 }
 
-filter_option_type(){
-  list_options | grep "$1|" | cut -d'|' -f3 | sort
+filter_option_type() {
+  list_options | grep "$1|" | cut -d'|' -f3 | sort | grep -v '^\s*$'
 }
 #####################################################################
 ################### DO NOT MODIFY BELOW THIS LINE ###################
@@ -255,7 +265,7 @@ initialise_output() {
 }
 
 out() { ((quiet)) && true || printf '%b\n' "$*"; }
-debug() { if ((verbose)) ; then out "${col_ylw}# $* ${col_reset}" >&2 ; else true ; fi; }
+debug() { if ((verbose)); then out "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
 die() {
   out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
   tput bel
@@ -286,7 +296,7 @@ upper_case() { echo "$*" | awk '{print toupper($0)}'; }
 slugify() {
   # shellcheck disable=SC2020
   echo "${1,,}" | xargs | tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
-  awk '{
+    awk '{
     gsub(/https?/,"",$0); gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_]/," ",$0);
     gsub(/^  */,"",$0); gsub(/  *$/,"",$0); gsub(/  */,"-",$0); gsub(/[^a-z0-9\-]/,"");
     print;
