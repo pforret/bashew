@@ -40,21 +40,14 @@ flag|h|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
-
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|.tmp
-option|w|width|width to use|800
-
-list|u|user|user(s) to execute this for
-
-secret|p|password|password to use
-
+#option|w|width|width to use|800
+#list|u|user|user(s) to execute this for
 param|1|action|action to perform: analyze/convert
 param|?|input|input file
 param|?|output|output file
-" |
-    grep -v '^#' |
-    grep -v '^\s*$'
+" | grep -v '^#' | grep -v '^\s*$'
 }
 
 list_dependencies() {
@@ -68,9 +61,7 @@ list_dependencies() {
   echo -n "
 gawk
 curl
-" |
-    grep -v "^#" |
-    sort
+" | grep -v "^#" | grep -v '^\s*$'
 }
 
 #####################################################################
@@ -83,24 +74,24 @@ main() {
 
   action=$(lower_case "$action")
   case $action in
-  check)
-    #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
-    #TIP:> $script_prefix check
-    do_check
-    ;;
-
-  analyze)
-    #TIP: use «$script_prefix analyze» to analyze an input file
-    #TIP:> $script_prefix analyze input.txt
+  action1)
+    #TIP: use «$script_prefix action1» to ...
+    #TIP:> $script_prefix action1 input.txt
     # shellcheck disable=SC2154
-    do_analyze "$input"
+    do_action1 "$input"
     ;;
 
   convert)
     #TIP: use «$script_prefix convert» to convert input into output
     #TIP:> $script_prefix convert input.txt output.pdf
     # shellcheck disable=SC2154
-    do_convert "$input" "$output"
+    do_action2 "$input" "$output"
+    ;;
+
+  check)
+    #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
+    #TIP:> $script_prefix check
+    do_check
     ;;
 
   *)
@@ -116,52 +107,82 @@ main() {
 ## Put your helper scripts here
 #####################################################################
 
-do_analyze() {
-  log_to_file "Analyze [$input]"
+do_action1() {
+  log_to_file "Action1 [$input]"
   # < "$1"  do_analysis_stuff
 }
 
-do_convert() {
-  log_to_file "Convert [$input] -> [$output]"
+do_action2() {
+  log_to_file "Action2 [$input] -> [$output]"
   # < "$1"  do_conversion_stuff > "$2"
 }
 
 do_check(){
-    echo -n "$char_succ Check dependencies: "
-    list_dependencies | cut -d'|' -f1 | sort | xargs
-    echo -n "$char_succ Check flags       : "
-    list_options | grep 'flag|' | cut -d'|' -f3 | sort |
-      while read -r name; do
-        [[ -z "$name" ]] && continue
-        eval "echo -n \"$name=\$${name:-}  \""
-      done
-    echo " "
+    out "## dependencies: "
+    out "$(list_dependencies | cut -d'|' -f1 | sort | xargs)"
+    out " "
 
-    echo -n "$char_succ Check options     : "
-    list_options | grep 'option|' | cut -d'|' -f3 | sort |
-      while read -r name; do
-        [[ -z "$name" ]] && continue
-        eval "echo -n \"$name=\\\"\$${name:-}\\\"  \""
-      done
-    echo " "
+    if [[ -n $(filter_option_type flag) ]] ; then
+      out "## boolean flags"
+      filter_option_type flag |
+        while read -r name; do
+          [[ -z "$name" ]] && continue
+          if ((piped)) ; then
+            eval "echo \"$name=\$${name:-}\""
+          else
+            eval "echo -n \"$name=\$${name:-}  \""
+          fi
+        done
+      out " "
+    fi
 
-    echo -n "$char_succ Check arrays      : "
-    list_options | grep 'list|' | cut -d'|' -f3 | sort |
-      while read -r name; do
-        [[ -z "$name" ]] && continue
-        eval "echo -n \"$name=(\${${name}[@]})  \""
-      done
-    echo " "
+    if [[ -n $(filter_option_type option) ]] ; then
+      out "## text options"
+      filter_option_type option |
+        while read -r name; do
+          [[ -z "$name" ]] && continue
+          if ((piped)) ; then
+            eval "echo \"$name=\$${name:-}\""
+          else
+            eval "echo -n \"$name=\$${name:-}  \""
+          fi
+        done
+      out " "
+    fi
 
-    echo -n "$char_succ Check parameters  : "
-    list_options | grep 'param|' | cut -d'|' -f3 | sort |
-      while read -r name; do
-        [[ -z "$name" ]] && continue
-        eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
-      done
-    echo " "
+    if [[ -n $(filter_option_type list) ]] ; then
+      out "## list options"
+      filter_option_type list |
+        while read -r name; do
+          [[ -z "$name" ]] && continue
+           if ((piped)) ; then
+            eval "echo \"$name=(\${${name}[@]})\""
+          else
+            eval "echo -n \"$name=(\${${name}[@]})  \""
+          fi
+        done
+      out " "
+    fi
+
+    if [[ -n $(filter_option_type param) ]] ; then
+      if ((piped)) ; then
+        echo ""
+      else
+        echo "## parameters"
+        filter_option_type param |
+          while read -r name; do
+            [[ -z "$name" ]] && continue
+            # shellcheck disable=SC2015
+            ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+          done
+        echo " "
+      fi
+    fi
 }
 
+filter_option_type(){
+  list_options | grep "$1|" | cut -d'|' -f3 | sort
+}
 #####################################################################
 ################### DO NOT MODIFY BELOW THIS LINE ###################
 #####################################################################
