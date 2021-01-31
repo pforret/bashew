@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - have different templates: normal/micro
 - suppprt bigger (external) bash frameworks
 
+## [1.13.6] - 2021-01-31
+### Added/changed
+- Update issue templates
+- Merge branch 'master' of github.com:pforret/bashew
+- ADD: CONTRIBUTING.md, 
 ## [1.1.0] - 2020-08-09
 ### Added/changed
 - Implement 'bashew.sh script'
