@@ -6,14 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- have different templates: normal/micro
-- suppprt bigger (external) bash frameworks
+- put requirements/dependencies in separate file
 
 ## [1.13.6] - 2021-01-31
 ### Added/changed
 - Update issue templates
 - Merge branch 'master' of github.com:pforret/bashew
-- ADD: CONTRIBUTING.md, 
+- ADD: CONTRIBUTING.md
+
 ## [1.1.0] - 2020-08-09
 ### Added/changed
 - Implement 'bashew.sh script'

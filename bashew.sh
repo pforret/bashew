@@ -209,6 +209,7 @@ main() {
     [[ "$repo_name" == "bashew" ]] && die "You can only run the '$script_basename init' of a *new* repo, derived from the bashew template on Github."
     [[ ! -d ".git" ]] && die "You can only run '$script_basename init' in the root of your repo"
     [[ ! -d "template" ]] && die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from pforret/bashew?"
+    [[ ! -f "$script_install_folder/template/$model.sh" ]] && die "$model.sh is not a valid template"
     new_name="$repo_name.sh"
     get_author_data "./$new_name"
     announce "Creating script $new_name ..."
