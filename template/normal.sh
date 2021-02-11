@@ -280,7 +280,7 @@ announce() {
 
 progress() {
   ((quiet)) || (
-    if is_set ${piped:-0}; then
+    if flag_set ${piped:-0}; then
       out "$*" >&2
     else
       printf "... %-${wprogress}b\r" "$*                                             " >&2
@@ -305,7 +305,7 @@ slugify() {
 
 confirm() {
   # $1 = question
-  is_set $force && return 0
+  flag_set $force && return 0
   read -r -p "$1 [y/N] " -n 1
   echo " "
   [[ $REPLY =~ ^[Yy]$ ]]
@@ -338,12 +338,7 @@ safe_exit() {
   exit 0
 }
 
-is_set() { [[ "$1" -gt 0 ]]; }
-is_empty() { [[ -z "$1" ]]; }
-is_not_empty() { [[ -n "$1" ]]; }
-
-is_file() { [[ -f "$1" ]]; }
-is_dir() { [[ -d "$1" ]]; }
+flag_set() { [[ "$1" -gt 0 ]]; }
 
 show_usage() {
   out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
@@ -570,7 +565,6 @@ require_binaries() {
 }
 
 folder_prep() {
-
   if [[ -n "$1" ]]; then
     local folder="$1"
     local max_days=${2:-365}
@@ -710,7 +704,7 @@ prep_log_and_temp_dir() {
     # it will be deleted automatically if the program ends without problems
   fi
   if [[ -n "${log_dir:-}" ]]; then
-    folder_prep "$log_dir" 7
+    folder_prep "$log_dir" 30
     log_file="$log_dir/$script_prefix.$execution_day.log"
     debug "$config_icon log_file: $log_file"
   fi
