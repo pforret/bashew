@@ -133,5 +133,5 @@ cd <newname>
 * Documentation from [Google](https://google.github.io/styleguide/shellguide.html), [BashPitfalls](https://mywiki.wooledge.org/BashPitfalls), [Microsoft](https://github.com/microsoft/code-with-engineering-playbook/blob/master/code-reviews/recipes/Bash.md)
 
 ## 🤔 What's that name? Bashew?
-* derived from  'bash new'
+* derived from 'bash new'
 * rhymes with cashew
