@@ -97,7 +97,14 @@ main() {
     #TIP:> $script_prefix check
     #TIP: use «$script_prefix env» to generate an example .env file
     #TIP:> $script_prefix env > .env
-    do_check
+    check_script_settings
+    ;;
+
+  update)
+    ## leave this default action, it will make it easier to test your script
+    #TIP: use «$script_prefix update» to update to the latest version
+    #TIP:> $script_prefix check
+    update_script_to_latest
     ;;
 
   *)
@@ -123,76 +130,7 @@ do_action2() {
   # < "$1"  do_action2_stuff > "$2"
 }
 
-do_check() {
-    ## leave this default action, it will make it easier to test your script
-  if ((piped)); then
-    debug "Skip dependencies for .env files"
-  else
-    out "## ${col_grn}dependencies${col_reset}: "
-    out "$(list_dependencies | cut -d'|' -f1 | sort | xargs)"
-    out " "
-  fi
 
-  if [[ -n $(filter_option_type flag) ]]; then
-    out "## ${col_grn}boolean flags${col_reset}:"
-    filter_option_type flag |
-      while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=\$${name:-}\""
-        else
-          eval "echo -n \"$name=\$${name:-}  \""
-        fi
-      done
-    out " "
-    out " "
-  fi
-
-  if [[ -n $(filter_option_type option) ]]; then
-    out "## ${col_grn}option defaults${col_reset}:"
-    filter_option_type option |
-      while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=\$${name:-}\""
-        else
-          eval "echo -n \"$name=\$${name:-}  \""
-        fi
-      done
-    out " "
-    out " "
-  fi
-
-  if [[ -n $(filter_option_type list) ]]; then
-    out "## ${col_grn}list options${col_reset}:"
-    filter_option_type list |
-      while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=(\${${name}[@]})\""
-        else
-          eval "echo -n \"$name=(\${${name}[@]})  \""
-        fi
-      done
-    out " "
-    out " "
-  fi
-
-  if [[ -n $(filter_option_type param) ]]; then
-    if ((piped)); then
-      debug "Skip parameters for .env files"
-    else
-      out "## ${col_grn}parameters${col_reset}:"
-      filter_option_type param |
-        while read -r name; do
-          # shellcheck disable=SC2015
-          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
-        done
-      echo " "
-    fi
-  fi
-}
-
-filter_option_type() {
-  list_options | grep "$1|" | cut -d'|' -f3 | sort | grep -v '^\s*$'
-}
 #####################################################################
 ################### DO NOT MODIFY BELOW THIS LINE ###################
 #####################################################################
@@ -384,13 +322,41 @@ show_usage() {
   '
 }
 
+check_last_version(){
+  (
+  # shellcheck disable=SC2164
+  pushd "$script_install_folder" &> /dev/null
+  local remote
+  remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
+  progress "Check for latest version - $remote"
+  git remote update &> /dev/null
+  if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]] ; then
+    out "There is a more recent update of this script - run <<$script_prefix update>> to update"
+  fi
+  # shellcheck disable=SC2164
+  popd &> /dev/null
+  )
+}
+
+update_script_to_latest(){
+  # run in background to avoid problems with modifying a running interpreted script
+  (
+  sleep 1
+  cd "$script_install_folder" && git pull
+  ) &
+}
+
 show_tips() {
   ((sourced)) && return 0
-  grep <"${BASH_SOURCE[0]}" -v "\$0" |
-    awk "
-  /TIP: / {\$1=\"\"; gsub(/«/,\"$col_grn\"); gsub(/»/,\"$col_reset\"); print \"*\" \$0}
-  /TIP:> / {\$1=\"\"; print \" $col_ylw\" \$0 \"$col_reset\"}
-  " |
+  grep <"$0" -v "\$0" |
+    awk \
+      -v green="$col_grn" \
+      -v yellow="$col_ylw" \
+      -v reset="$col_reset" \
+    '
+  /TIP: / {$1=""; gsub(/«/,green); gsub(/»/,reset); print "*" $0}
+  /TIP:> / {$1=""; print " " yellow $0 reset}
+  ' |
     awk \
       -v script_basename="$script_basename" \
       -v script_prefix="$script_prefix" \
@@ -399,6 +365,77 @@ show_tips() {
     gsub(/\$script_prefix/,script_prefix);
     print ;
     }'
+}
+
+check_script_settings() {
+    ## leave this default action, it will make it easier to test your script
+  if ((piped)); then
+    debug "Skip dependencies for .env files"
+  else
+    out "## ${col_grn}dependencies${col_reset}: "
+    out "$(list_dependencies | cut -d'|' -f1 | sort | xargs)"
+    out " "
+  fi
+
+  if [[ -n $(filter_option_type flag) ]]; then
+    out "## ${col_grn}boolean flags${col_reset}:"
+    filter_option_type flag |
+      while read -r name; do
+        if ((piped)); then
+          eval "echo \"$name=\$${name:-}\""
+        else
+          eval "echo -n \"$name=\$${name:-}  \""
+        fi
+      done
+    out " "
+    out " "
+  fi
+
+  if [[ -n $(filter_option_type option) ]]; then
+    out "## ${col_grn}option defaults${col_reset}:"
+    filter_option_type option |
+      while read -r name; do
+        if ((piped)); then
+          eval "echo \"$name=\$${name:-}\""
+        else
+          eval "echo -n \"$name=\$${name:-}  \""
+        fi
+      done
+    out " "
+    out " "
+  fi
+
+  if [[ -n $(filter_option_type list) ]]; then
+    out "## ${col_grn}list options${col_reset}:"
+    filter_option_type list |
+      while read -r name; do
+        if ((piped)); then
+          eval "echo \"$name=(\${${name}[@]})\""
+        else
+          eval "echo -n \"$name=(\${${name}[@]})  \""
+        fi
+      done
+    out " "
+    out " "
+  fi
+
+  if [[ -n $(filter_option_type param) ]]; then
+    if ((piped)); then
+      debug "Skip parameters for .env files"
+    else
+      out "## ${col_grn}parameters${col_reset}:"
+      filter_option_type param |
+        while read -r name; do
+          # shellcheck disable=SC2015
+          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+        done
+      echo " "
+    fi
+  fi
+}
+
+filter_option_type() {
+  list_options | grep "$1|" | cut -d'|' -f3 | sort | grep -v '^\s*$'
 }
 
 init_options() {
@@ -470,13 +507,13 @@ parse_options() {
   done
 
   ((help)) && (
-    echo "### USAGE"
     show_usage
-    echo ""
+    check_last_version
+    out "                                  "
     echo "### TIPS & EXAMPLES"
     show_tips
-    safe_exit
-  )
+
+  ) && safe_exit
 
   ## then run through the given parameters
   if expects_single_params; then
