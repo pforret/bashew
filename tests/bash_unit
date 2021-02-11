@@ -241,7 +241,7 @@ color() {
 }
 
 is_terminal() {
-  [ -t 1 ] || [[ "${FORCE_COLOR:-}" == true ]]
+  [ -t 1 ] || [[ "${FORCE_COLOR}" == true ]]
 }
 
 text_format() {
