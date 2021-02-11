@@ -348,23 +348,24 @@ update_script_to_latest(){
 
 show_tips() {
   ((sourced)) && return 0
-  grep <"$0" -v "\$0" |
-    awk \
+  # shellcheck disable=SC2016
+  grep <"${BASH_SOURCE[0]}" -v '$0' \
+  | awk \
       -v green="$col_grn" \
       -v yellow="$col_ylw" \
       -v reset="$col_reset" \
-    '
-  /TIP: / {$1=""; gsub(/«/,green); gsub(/»/,reset); print "*" $0}
-  /TIP:> / {$1=""; print " " yellow $0 reset}
-  ' |
-    awk \
+      '
+      /TIP: /  {$1=""; gsub(/«/,green); gsub(/»/,reset); print "*" $0}
+      /TIP:> / {$1=""; print " " yellow $0 reset}
+      ' \
+  | awk \
       -v script_basename="$script_basename" \
       -v script_prefix="$script_prefix" \
       '{
-    gsub(/\$script_basename/,script_basename);
-    gsub(/\$script_prefix/,script_prefix);
-    print ;
-    }'
+      gsub(/\$script_basename/,script_basename);
+      gsub(/\$script_prefix/,script_prefix);
+      print ;
+      }'
 }
 
 check_script_settings() {
