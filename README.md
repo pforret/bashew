@@ -124,7 +124,14 @@ cd <newname>
 * or with [basher](https://github.com/basherpm/basher) package manager
 
         basher install pforret/bashew
-        
+
+## 🙏 Acknowledgements
+
+* [bash_unit](https://github.com/pgrange/bash_unit): bash unit testing enterprise edition framework (used for CI/CD)
+* [shellcheck](https://github.com/koalaman/shellcheck): a static analysis tool for shell scripts (used for CI/CD)
+* [bash-boilerplate (2012)](https://github.com/oxyc/bash-boilerplate) on which I based my [bash-boilerplate (2020)](https://github.com/pforret/bash-boilerplate) which eventually became this [bashew](https://github.com/pforret/bashew)
+* Documentation from [Google](https://google.github.io/styleguide/shellguide.html), [BashPitfalls](https://mywiki.wooledge.org/BashPitfalls), [Microsoft](https://github.com/microsoft/code-with-engineering-playbook/blob/master/code-reviews/recipes/Bash.md)
+
 ## 🤔 What's that name? Bashew?
-* comes from 'bash new'
+* derived from  'bash new'
 * rhymes with cashew
