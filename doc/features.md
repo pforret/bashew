@@ -52,13 +52,12 @@
 `ask days "How many days?" 14`
 * get the result in the variable $days
 
-* 
 ## 2. options/flags/usage
 
 `bashew` only needs one specification of flags, options and parameters, and will use this to do the parsing as well as showing the usage.
 
 This is specified in the beginning of the script as
-```bash
+```
 #commented lines will be filtered
 flag|h|help|show usage
 flag|q|quiet|no output
