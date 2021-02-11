@@ -10,7 +10,7 @@
 
 package_description
 
-## Installation
+## 🚀 Installation
 
 with [basher](https://github.com/basherpm/basher)
 
@@ -21,11 +21,11 @@ or with `git`
 	$ git clone https://github.com/author_username/package_name.git
 	$ cd package_name
 
-## Usage
+## 🔥 Usage
 
 	> package_name.sh [action]
 
-## Acknowledgements
+## 📝 Acknowledgements
 
 * script created with [bashew](https://github.com/pforret/bashew)
 
