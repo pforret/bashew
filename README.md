@@ -15,7 +15,7 @@ latest release: [![version](https://img.shields.io/github/v/release/pforret/bash
 
 bash script / project creator
 
-## TL;DR
+## ⏳ TL;DR
 
 to create a new stand-alone **SCRIPT** (just a xyz.sh script), with option parsing, color output (cf `1.`)
 
@@ -29,7 +29,7 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 
         bashew init
      
-## Features
+## 🎯 Features
 
 * contained in 1 single file (no external dependencies)
 * comes with `README.md`, `CHANGELOG.md`, ... markdown files
@@ -46,7 +46,7 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 * easy CI/CD for Github (with shellcheck)
 * correct determination of script installation folder (resolve symbolic links)
 
-## Usage
+## 🔥 Usage
 
     Usage: bashew.sh [-h] [-q] [-v] [-f] [-t <tmpd>] [-l <logd>] [-n <name>] <action>
     Flags, options and parameters:
@@ -80,7 +80,7 @@ $ bashew.sh -f -q script
 ```shell
 bashew.sh project               # will interactively ask for author & script details
 bashew.sh -f project            # will create new project with random name
-bashew.sh -f -n "bingo" project # will create new project in folder "bingo"
+bashew.sh -f -n "tango" project # will create new project in folder "tango"
 ```
 
 Example:
@@ -114,7 +114,7 @@ cd <newname>
 ./bashew.sh init             # will ask for details and iniialise/clean up the repo
 ```
 
-## Installation
+## 🚀 Installation
 
 * manually
 
@@ -125,6 +125,6 @@ cd <newname>
 
         basher install pforret/bashew
         
-## What's that name? Bashew?
+## 🤔 What's that name? Bashew?
 * comes from 'bash new'
 * rhymes with cashew
