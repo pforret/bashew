@@ -136,3 +136,7 @@ cd <newname>
 ## 🤔 What's that name? Bashew?
 * derived from 'bash new'
 * rhymes with cashew
+
+## Stargazers over time
+
+[![Stargazers over time](https://starchart.cc/pforret/bashew.svg)](https://starchart.cc/pforret/bashew)
