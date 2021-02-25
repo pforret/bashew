@@ -42,29 +42,9 @@ flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|.tmp
-#option|w|width|width to use|800
-#list|u|user|user(s) to execute this for
 param|1|action|action to perform: analyze/convert
-param|?|input|input file
-param|?|output|output file
+param|?|input|input file/text
 " | grep -v '^#' | grep -v '^\s*$'
-}
-
-list_dependencies() {
-  ### Change the next lines to reflect which binaries(programs) or scripts are necessary to run this script
-  # Example 1: a regular package that should be installed with apt/brew/yum/...
-  #curl
-  # Example 2: a program that should be installed with apt/brew/yum/... through a package with a different name
-  #convert|imagemagick
-  # Example 3: a package with its own package manager: basher (shell), go get (golang), cargo (Rust)...
-  #progressbar|basher install pforret/progressbar
-  echo -n "
-gawk
-curl
-#ffmpeg
-#convert|imagemagick
-#progressbar|basher install pforret/progressbar
-" | grep -v "^#" | grep -v '^\s*$'
 }
 
 #####################################################################
@@ -72,7 +52,6 @@ curl
 #####################################################################
 
 main() {
-  require_binaries
   log_to_file "[$script_basename] $script_version started"
 
   action=$(lower_case "$action")
@@ -87,6 +66,7 @@ main() {
   action2)
     #TIP: use «$script_prefix action2» to ...
     #TIP:> $script_prefix action2 input.txt output.pdf
+
     # shellcheck disable=SC2154
     do_action2 "$input" "$output"
     ;;
@@ -122,12 +102,16 @@ main() {
 
 do_action1() {
   log_to_file "action1 [$input]"
-  # < "$1"  do_action1_stuff
+  # Examples of required binaries/scripts and how to install them
+  # require_binary "convert" "imagemagick"
+  # require_binary "progressbar" "basher install pforret/progressbar"
+  # (code)
 }
 
 do_action2() {
-  log_to_file "action2 [$input] -> [$output]"
-  # < "$1"  do_action2_stuff > "$2"
+  log_to_file "action2 [$input]"
+  # (code)
+
 }
 
 
@@ -369,15 +353,6 @@ show_tips() {
 }
 
 check_script_settings() {
-    ## leave this default action, it will make it easier to test your script
-  if ((piped)); then
-    debug "Skip dependencies for .env files"
-  else
-    out "## ${col_grn}dependencies${col_reset}: "
-    out "$(list_dependencies | cut -d'|' -f1 | sort | xargs)"
-    out " "
-  fi
-
   if [[ -n $(filter_option_type flag) ]]; then
     out "## ${col_grn}boolean flags${col_reset}:"
     filter_option_type flag |
@@ -572,34 +547,21 @@ parse_options() {
   fi
 }
 
-require_binaries() {
-  local required_binary
-  local install_instructions
-
-  while read -r line; do
-    required_binary=$(echo "$line" | cut -d'|' -f1)
-    [[ -z "$required_binary" ]] && continue
-    # shellcheck disable=SC2230
-    path_binary=$(which "$required_binary" 2>/dev/null)
-    [[ -n "$path_binary" ]] && debug "️$require_icon required [$required_binary] -> $path_binary"
-    [[ -n "$path_binary" ]] && continue
-    required_package=$(echo "$line" | cut -d'|' -f2)
-    if [[ $(echo "$required_package" | wc -w) -gt 1 ]]; then
-      # example: setver|basher install setver
-      install_instructions="$required_package"
-    else
-      [[ -z "$required_package" ]] && required_package="$required_binary"
-      if [[ -n "$install_package" ]]; then
-        install_instructions="$install_package $required_package"
-      else
-        install_instructions="(install $required_package with your package manager)"
-      fi
-    fi
-    alert "$script_basename needs [$required_binary] but it cannot be found"
-    alert "1) install package  : $install_instructions"
-    alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
-    die "Missing program/script [$required_binary]"
-  done < <(list_dependencies)
+require_binary(){
+  binary="$1"
+  path_binary=$(which "$binary" 2>/dev/null)
+  [[ -n "$path_binary" ]] && debug "️$require_icon required [$binary] -> $path_binary" && return 0
+  #
+  words=$(echo "${2:-}" | wc -l)
+  case $words in
+    0)  install_instructions="$install_package $1";;
+    1)  install_instructions="$install_package $2";;
+    *)  install_instructions="$2"
+  esac
+  alert "$script_basename needs [$binary] but it cannot be found"
+  alert "1) install package  : $install_instructions"
+  alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
+  die   "Missing program/script [$binary]"
 }
 
 folder_prep() {
@@ -760,11 +722,12 @@ import_env_if_any() {
   done
 }
 
-[[ $run_as_root == 1 ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
-[[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
-
 initialise_output  # output settings
 lookup_script_data # find installation folder
+
+[[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
+[[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
+
 init_options       # set default values for flags & options
 import_env_if_any  # overwrite with .env if any
 
