@@ -310,12 +310,14 @@ check_last_version(){
   (
   # shellcheck disable=SC2164
   pushd "$script_install_folder" &> /dev/null
-  local remote
-  remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
-  progress "Check for latest version - $remote"
-  git remote update &> /dev/null
-  if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]] ; then
-    out "There is a more recent update of this script - run <<$script_prefix update>> to update"
+  if [[ -d .git ]] ; then
+    local remote
+    remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
+    progress "Check for latest version - $remote"
+    git remote update &> /dev/null
+    if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]] ; then
+      out "There is a more recent update of this script - run <<$script_prefix update>> to update"
+    fi
   fi
   # shellcheck disable=SC2164
   popd &> /dev/null
