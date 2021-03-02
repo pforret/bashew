@@ -657,7 +657,7 @@ lookup_script_data() {
     os_version=$(sw_vers -productVersion) # 11.1
     ;;
   Linux | GNU*)
-    if [[ $(which lsb_release) ]]; then
+    if [[ -n "$(command -v lsb_release)" ]]; then
       # 'normal' Linux distributions
       os_name=$(lsb_release -i)    # Ubuntu
       os_version=$(lsb_release -r) # 20.04
