@@ -645,15 +645,6 @@ lookup_script_data() {
   [[ "$os_uname" == "Linux" ]] && script_modified=$(stat -c "%y" "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
   [[ "$os_uname" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)            # for MacOS
 
-  # get shell/operating system/versions
-  shell_brand="sh"
-  shell_version="?"
-  [[ -n "${ZSH_VERSION:-}" ]] && shell_brand="zsh" && shell_version="$ZSH_VERSION"
-  [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
-  [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
-  [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
-  log "Shell type : $shell_brand - version $shell_version"
-
   readonly os_kernel=$(uname -s)
   os_version=$(uname -r)
   os_machine=$(uname -m)
@@ -678,8 +669,19 @@ lookup_script_data() {
   esac
   log "OS Version : $os_name ($os_kernel) $os_version on $os_machine"
 
+  # get shell/operating system/versions
+  shell_brand="sh"
+  shell_version="?"
+  [[ -n "${ZSH_VERSION:-}" ]] && shell_brand="zsh" && shell_version="$ZSH_VERSION"
+  [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
+  [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
+  [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
+  log "Shell type : $shell_brand - version $shell_version"
+
+
   script_version=0.0.0
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
+  log "Script     : bashew v$script_version"
   if git status >/dev/null 2>&1; then
     readonly in_git_repo=1
   else
