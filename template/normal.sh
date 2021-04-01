@@ -145,6 +145,7 @@ quiet=0
 #to enable quiet even before option parsing
 [[ $# -gt 0 ]] && [[ $1 == "-q" ]] && quiet=1
 
+### stdout/stderr output
 initialise_output() {
   [[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && sourced=1 || sourced=0
   [[ -t 1 ]] && piped=0 || piped=1 # detect if output is piped
@@ -166,10 +167,10 @@ initialise_output() {
     char_fail="✖"
     char_alrt="➨"
     char_wait="…"
-    info_icon="🔎"
-    config_icon="🖌️"
-    clean_icon="🧹"
-    require_icon="📎"
+    info_icon="✦"
+    config_icon="⌘"
+    clean_icon="♺"
+    require_icon="⎆"
   else
     char_succ="OK "
     char_fail="!! "
@@ -181,50 +182,77 @@ initialise_output() {
     require_icon="[r]"
   fi
   error_prefix="${col_red}>${col_reset}"
-
-  readonly nbcols=$(tput cols 2>/dev/null || echo 80)
-  readonly wprogress=$((nbcols - 5))
 }
 
-out() { ((quiet)) && true || printf '%b\n' "$*"; }
-debug() { if ((verbose)); then out "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
-die() {
-  out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
-  tput bel
-  safe_exit
-}
-alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; } # print error and continue
+out() {     ((quiet)) && true || printf '%b\n' "$*"; }
+debug() {   if ((verbose)); then out "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
+die() {     out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2 ; safe_exit ; }
+alert() {   out "${col_red}${char_alrt}${col_reset}: $*" >&2 ; }
 success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
-announce() {
-  out "${col_grn}${char_wait}${col_reset}  $*"
-  sleep 1
-}
-
+announce() { out "${col_grn}${char_wait}${col_reset}  $*"; sleep 1 ; }
 progress() {
   ((quiet)) || (
+    local screen_width
+    screen_width=$(tput cols 2>/dev/null || echo 80)
+    local rest_of_line
+    rest_of_line=$((screen_width - 5))
+
     if flag_set ${piped:-0}; then
       out "$*" >&2
     else
-      printf "... %-${wprogress}b\r" "$*                                             " >&2
+      printf "... %-${rest_of_line}b\r" "$*                                             " >&2
     fi
   )
 }
 
 log_to_file() { [[ -n ${log_file:-} ]] && echo "$(date '+%H:%M:%S') | $*" >>"$log_file"; }
 
-lower_case() { echo "$*" | awk '{print tolower($0)}'; }
-upper_case() { echo "$*" | awk '{print toupper($0)}'; }
+### string processing
+lower_case() { echo "$*" | tr '[:upper:]' '[:lower:]'; }
+upper_case() { echo "$*" | tr '[:lower:]' '[:upper:]'; }
 
 slugify() {
-  # shellcheck disable=SC2020
-  echo "${1,,}" | xargs | tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
-    awk '{
-    gsub(/https?/,"",$0); gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_]/," ",$0);
-    gsub(/^  */,"",$0); gsub(/  *$/,"",$0); gsub(/  */,"-",$0); gsub(/[^a-z0-9\-]/,"");
-    print;
-    }' | cut -c1-50
+    # slugify <input> <separator>
+    # slugify "Jack, Jill & Clémence LTD"      => jack-jill-clemence-ltd
+    # slugify "Jack, Jill & Clémence LTD" "_"  => jack_jill_clemence_ltd
+    separator="${2:-}"
+    [[ -z "$separator" ]] && separator="-"
+    # shellcheck disable=SC2020
+    echo "$1" |
+        tr '[:upper:]' '[:lower:]' |
+        tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
+        awk '{
+          gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_]/," ",$0);
+          gsub(/^  */,"",$0);
+          gsub(/  *$/,"",$0);
+          gsub(/  */,"-",$0);
+          gsub(/[^a-z0-9\-]/,"");
+          print;
+          }' |
+        sed "s/-/$separator/g"
 }
 
+title_case() {
+    # title_case <input> <separator>
+    # title_case "Jack, Jill & Clémence LTD"     => JackJillClemenceLtd
+    # title_case "Jack, Jill & Clémence LTD" "_" => Jack_Jill_Clemence_Ltd
+    separator="${2:-}"
+    # shellcheck disable=SC2020
+    echo "$1" |
+        tr '[:upper:]' '[:lower:]' |
+        tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
+        awk '{ gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_-]/," ",$0); print $0; }' |
+        awk '{
+          for (i=1; i<=NF; ++i) {
+              $i = toupper(substr($i,1,1)) tolower(substr($i,2))
+          };
+          print $0;
+          }' |
+        sed "s/ /$separator/g" |
+        cut -c1-50
+}
+
+### interactive
 confirm() {
   # $1 = question
   flag_set $force && return 0
@@ -254,6 +282,7 @@ trap "die \"ERROR \$? after \$SECONDS seconds \n\
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 
 safe_exit() {
+  tput bel
   [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
   trap - INT TERM EXIT
   debug "$script_basename finished after $SECONDS seconds"
