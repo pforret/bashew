@@ -295,11 +295,9 @@ main() {
 # removed -e because it made basic [[ testing ]] difficult
 set -uo pipefail
 IFS=$'\n\t'
-# shellcheck disable=SC2120
 hash() {
   length=${1:-6}
-  # shellcheck disable=SC2230
-  if [[ -n $(which md5sum) ]]; then
+  if [[ -n $(command -v md5sum) ]]; then
     # regular linux
     md5sum | cut -c1-"$length"
   else
@@ -486,7 +484,7 @@ verify_programs() {
   log "Verify : $list_programs"
   for prog in "$@"; do
     # shellcheck disable=SC2230
-    if [[ -z $(which "$prog") ]]; then
+    if [[ -z $(command -v "$prog") ]]; then
       die "$script_basename needs [$prog] but this program cannot be found on this $os_uname machine"
     fi
   done
