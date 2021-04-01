@@ -236,9 +236,11 @@ main() {
     delete_stuff template
     delete_stuff tests/disabled
     delete_stuff tests/test_bashew.sh
+    delete_stuff tests/test_functions.sh
     delete_stuff assets
     delete_stuff .tmp
     delete_stuff log
+    delete_stuff doc
     log "Delete script [bashew.sh] ..."
     (
       sleep 1
