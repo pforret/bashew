@@ -16,6 +16,11 @@ setup_suite(){
   export FORCE_COLOR=true
 }
 
+test_has_unicode() {
+  # shellcheck disable=SC2154
+  assert_equals 1 "$unicode"
+}
+
 test_lower_case() {
   assert_equals "james bond jr." "$(lower_case "James Bond Jr.")"
   assert_equals "été de garçon" "$(lower_case "Été de Garçon")"
