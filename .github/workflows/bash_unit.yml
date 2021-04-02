@@ -13,9 +13,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: install Ubuntu dependencies with sudo apt install -y
-      run: sudo apt upgrade -y bash
-
     - name: Check for basic execution
       run: ls ./*.sh | xargs bash
 

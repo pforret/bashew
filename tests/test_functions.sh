@@ -14,6 +14,12 @@ setup_suite(){
   # shellcheck disable=SC1091
   source "../template/normal.sh"
   export FORCE_COLOR=true
+  export LC_ALL="en_US.UTF-8"
+  export LANG="en_US.UTF-8"
+  unicode=1
+  [[ ! $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=0
+  [[ ! $(echo -e '\xE2\x98\xA0') == '☠' ]] && unicode=0
+  [[ ! $(echo -e '\xc3\xa9') == 'é' ]] && unicode=0
 }
 
 test_has_unicode() {
@@ -23,7 +29,8 @@ test_has_unicode() {
 
 test_lower_case() {
   assert_equals "james bond jr." "$(lower_case "James Bond Jr.")"
-  assert_equals "été de garçon" "$(lower_case "Été de Garçon")"
+
+  ((unicode)) && assert_equals "été de garçon" "$(lower_case "Été de Garçon")"
 }
 
 test_upper_case() {
