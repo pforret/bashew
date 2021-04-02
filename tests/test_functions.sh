@@ -13,6 +13,7 @@
 setup_suite(){
   # shellcheck disable=SC1091
   source "../template/normal.sh"
+  export FORCE_COLOR=true
 }
 
 test_lower_case() {
