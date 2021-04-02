@@ -184,7 +184,7 @@ initialise_output() {
 
 out() {     ((quiet)) && true || printf '%b\n' "$*"; }
 debug() {   if ((verbose)); then out "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
-die() {     out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2 ; safe_exit ; }
+die() {     out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2 ; tput bel ; safe_exit ; }
 alert() {   out "${col_red}${char_alrt}${col_reset}: $*" >&2 ; }
 success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
 announce() { out "${col_grn}${char_wait}${col_reset}  $*"; sleep 1 ; }
@@ -280,7 +280,6 @@ trap "die \"ERROR \$? after \$SECONDS seconds \n\
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 
 safe_exit() {
-  tput bel
   [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
   trap - INT TERM EXIT
   debug "$script_basename finished after $SECONDS seconds"
