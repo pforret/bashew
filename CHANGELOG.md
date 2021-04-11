@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - put requirements/dependencies in separate file
 
+## [1.15.3] - 2021-04-11
+### Added/changed
+- detect unicode in testing
+- check unicode support for ubuntu
+- test CI 
+
 ## [1.13.8] - 2021-02-11
 ### Added/changed
 - added features.md

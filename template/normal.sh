@@ -41,8 +41,8 @@ flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
-option|t|tmp_dir|folder for temp files|.tmp
-param|1|action|action to perform: analyze/convert
+option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
+param|1|action|action to perform: action1/action2
 param|?|input|input file/text
 " | grep -v '^#' | grep -v '^\s*$'
 }
@@ -161,14 +161,14 @@ initialise_output() {
 
   [[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
   if [[ $unicode -gt 0 ]]; then
-    char_succ="✔"
-    char_fail="✖"
-    char_alrt="➨"
-    char_wait="…"
-    info_icon="✦"
-    config_icon="⌘"
-    clean_icon="♺"
-    require_icon="⎆"
+    char_succ="✅"
+    char_fail="⛔"
+    char_alrt="✴️"
+    char_wait="⏳"
+    info_icon="🌼"
+    config_icon="🌱"
+    clean_icon="🧽"
+    require_icon="🔌"
   else
     char_succ="OK "
     char_fail="!! "
@@ -635,8 +635,9 @@ lookup_script_data() {
   script_install_path="${BASH_SOURCE[0]}"
   debug "$info_icon Script path: $script_install_path"
   script_install_path=$(recursive_readlink "$script_install_path")
-  debug "$info_icon Actual path: $script_install_path"
+  debug "$info_icon Linked path: $script_install_path"
   readonly script_install_folder="$( cd -P "$( dirname "$script_install_path" )" && pwd )"
+  debug "$info_icon In folder  : $script_install_folder"
   if [[ -f "$script_install_path" ]]; then
     script_hash=$(hash <"$script_install_path" 8)
     script_lines=$(awk <"$script_install_path" 'END {print NR}')
