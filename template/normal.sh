@@ -636,7 +636,7 @@ lookup_script_data() {
   debug "$info_icon Script path: $script_install_path"
   script_install_path=$(recursive_readlink "$script_install_path")
   debug "$info_icon Actual path: $script_install_path"
-  readonly script_install_folder="$(dirname "$script_install_path")"
+  readonly script_install_folder="$( cd -P "$( dirname "$script_install_path" )" && pwd )"
   if [[ -f "$script_install_path" ]]; then
     script_hash=$(hash <"$script_install_path" 8)
     script_lines=$(awk <"$script_install_path" 'END {print NR}')
