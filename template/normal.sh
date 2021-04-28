@@ -579,17 +579,28 @@ require_binary(){
   binary="$1"
   path_binary=$(command -v "$binary" 2>/dev/null)
   [[ -n "$path_binary" ]] && debug "️$require_icon required [$binary] -> $path_binary" && return 0
-  #
   words=$(echo "${2:-}" | wc -l)
-  case $words in
-    0)  install_instructions="$install_package $1";;
-    1)  install_instructions="$install_package $2";;
-    *)  install_instructions="$2"
-  esac
-  alert "$script_basename needs [$binary] but it cannot be found"
-  alert "1) install package  : $install_instructions"
-  alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
-  die   "Missing program/script [$binary]"
+  if ((force)) ; then
+    announce "Installing $1 ..."
+    case $words in
+      0)  eval "$install_package $1" ;;
+          # require_binary ffmpeg -- binary and package have the same name
+      1)  eval "$install_package $2" ;;
+          # require_binary convert imagemagick -- binary and package have different names
+      *)  eval "${2:-}"
+          # require_binary primitive "go get -u github.com/fogleman/primitive" -- non-standard package manager
+    esac
+  else
+    case $words in
+      0)  install_instructions="$install_package $1" ;;
+      1)  install_instructions="$install_package $2" ;;
+      *)  install_instructions="${2:-}"
+    esac
+    alert "$script_basename needs [$binary] but it cannot be found"
+    alert "1) install package  : $install_instructions"
+    alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
+    die   "Missing program/script [$binary]"
+  fi
 }
 
 folder_prep() {
