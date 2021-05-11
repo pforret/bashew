@@ -755,11 +755,38 @@ import_env_if_any() {
 
   for env_file in "${env_files[@]}"; do
     if [[ -f "$env_file" ]]; then
-      debug "$config_icon Read config from [$env_file]"
+      debug "$config_icon Read  dotenv: [$env_file]"
+      clean_file=$(clean_dotenv "$env_file")
       # shellcheck disable=SC1090
-      source "$env_file"
+      source "$clean_file" && rm "$clean_file"
     fi
   done
+}
+
+clean_dotenv(){
+  local input="$1"
+  local output="$1.__.sh"
+  [[ ! -f "$input" ]] && die "Input file [$input] does not exist"
+  debug "$clean_icon Clean dotenv: [$output]"
+  < "$input" awk '
+      function ltrim(s) { sub(/^[ \t\r\n]+/, "", s); return s }
+      function rtrim(s) { sub(/[ \t\r\n]+$/, "", s); return s }
+      function trim(s) { return rtrim(ltrim(s)); }
+      /=/ { # skip lines with no equation
+        $0=trim($0);
+        if(substr($0,1,1) != "#"){ # skip comments
+          equal=index($0, "=");
+          key=trim(substr($0,1,equal-1));
+          val=trim(substr($0,equal+1));
+          if(match(val,/^".*"$/) || match(val,/^\047.*\047$/)){
+            print key "=" val
+          } else {
+            print key "=\"" val "\""
+          }
+        }
+      }
+  ' > "$output"
+  echo "$output"
 }
 
 initialise_output  # output settings

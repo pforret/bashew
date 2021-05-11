@@ -11,7 +11,6 @@ flag|h|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
-option|m|model|template script to use: small/normal|normal
 option|l|log_dir|folder for debug files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 option|n|name|name of new script or project
@@ -42,7 +41,8 @@ get_author_data() {
   [[ -n ${BASHEW_AUTHOR_USERNAME:-} ]] && guess_username="$BASHEW_AUTHOR_USERNAME"
 
   # if there is git config data, use that
-  if is_set "$in_git_repo"; then
+  # shellcheck disable=SC2154
+  if [[ -n "$git_repo_root" ]]; then
     guess_fullname=$(git config user.name)
     guess_email=$(git config user.email)
     guess_username=$(git config remote.origin.url | cut -d: -f2)
@@ -147,10 +147,11 @@ main() {
   require_binary tput
   require_binary uname
   require_binary git
+  model="script"
 
   action=$(lower_case "$action")
   case $action in
-  script)
+  script|new)
     if [[ -n "${name:-}" ]] && [[ ! "$name" == " " ]]; then
       debug "Using [$name] as name"
       get_author_data "$name"
@@ -818,7 +819,7 @@ lookup_script_data() {
   readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
   readonly script_basename=$(basename "${BASH_SOURCE[0]}")
   readonly execution_day=$(date "+%Y-%m-%d")
-  #readonly execution_year=$(date "+%Y")
+  readonly execution_year=$(date "+%Y")
 
   script_install_path="${BASH_SOURCE[0]}"
   debug "$info_icon Script path: $script_install_path"
