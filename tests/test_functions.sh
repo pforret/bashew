@@ -12,7 +12,7 @@
 
 setup_suite(){
   # shellcheck disable=SC1091
-  source "../template/normal.sh"
+  source "../template/script.sh"
   export FORCE_COLOR=true
   export LC_ALL="en_US.UTF-8"
   export LANG="en_US.UTF-8"
