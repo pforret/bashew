@@ -454,12 +454,12 @@ ask() {
   # $3 = default value
   # not using read -i because that doesn't work on MacOS
   local ANSWER
-  read -r -p "$2 ($3) > " ANSWER
-  if [[ -z "$ANSWER" ]]; then
-    eval "$1=\"$3\""
+  if [[ -n "${2:-}" ]] ; then
+    read -r -p "$1 ($2) > " ANSWER
   else
-    eval "$1=\"$ANSWER\""
+    read -r -p "$1      > " ANSWER
   fi
+  echo "$ANSWER"
 }
 
 trap "die \"ERROR \$? after \$SECONDS seconds \n\
