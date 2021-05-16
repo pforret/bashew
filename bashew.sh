@@ -81,6 +81,9 @@ copy_and_replace() {
   local input="$1"
   local output="$2"
 
+  if [[ ! -f "$input" ]] ; then
+    return 0
+  fi
   awk \
     -v author_fullname="$author_fullname" \
     -v author_username="$author_username" \
@@ -449,17 +452,15 @@ confirm() {
 }
 
 ask() {
-  # $1 = variable name
-  # $2 = question
-  # $3 = default value
-  # not using read -i because that doesn't work on MacOS
+  # $1 = question
+  # $2 = default value
   local ANSWER
   if [[ -n "${2:-}" ]] ; then
     read -r -p "$1 ($2) > " ANSWER
   else
     read -r -p "$1      > " ANSWER
   fi
-  echo "$ANSWER"
+  [[ -n "$ANSWER" ]] && echo "$ANSWER" || echo "${2:-}"
 }
 
 trap "die \"ERROR \$? after \$SECONDS seconds \n\
