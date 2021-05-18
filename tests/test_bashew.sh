@@ -15,7 +15,7 @@ root_script="$root_folder/bashew.sh" # take largest .sh (in case there are small
 template_folder="$(cd ../template && pwd)" # tests/../template is root folder
 template_script="$template_folder/script.sh"
 
-test_bashew2_create_normal_script() {
+test_3_create_normal_script() {
   # script without parameters should give usage info
   temp_folder="./test.$RANDOM"
   current_folder=$(pwd)
@@ -27,12 +27,12 @@ test_bashew2_create_normal_script() {
   rm -fr "$temp_folder"
 }
 
-test_normal1_show_option_verbose() {
+test_1_show_option_verbose() {
   # script without parameters should give usage info
   assert_equals 1 "$("$template_script"  2>&1 | grep -c "verbose")"
 }
 
-test_normal2_action_check_works() {
+test_2_action_check_works() {
   # script without parameters should give usage info
   assert_equals 1 "$("$template_script" check 2>&1 | grep -c "verbose=")"
   assert_equals 1 "$("$template_script" check 2>&1 | grep -c "log_dir=")"
