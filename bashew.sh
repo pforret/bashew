@@ -81,7 +81,7 @@ copy_and_replace() {
   local input="$1"
   local output="$2"
 
-  if [[ ! -f "$input" ]] ; then
+  if [[ ! -f "$input" ]]; then
     return 0
   fi
   awk \
@@ -138,9 +138,6 @@ delete_stuff() {
     rm "$1"
   fi
 }
-#####################################################################
-## Put your main script here
-#####################################################################
 
 main() {
   debug "Program: $script_basename $script_version"
@@ -150,11 +147,11 @@ main() {
   require_binary tput
   require_binary uname
   require_binary git
-  model="script"
+  local model="script"
 
   action=$(lower_case "$action")
   case $action in
-  script|new)
+  script | new)
     if [[ -n "${name:-}" ]] && [[ ! "$name" == " " ]]; then
       debug "Using [$name] as name"
       get_author_data "$name"
@@ -252,7 +249,7 @@ main() {
     (
       sleep 1
       rm -f bashew.sh bashew
-    ) &# delete will happen after the script is finished
+    ) & # delete will happen after the script is finished
     success "script $new_name created!"
     success "now do: ${col_ylw}git commit -a -m 'after bashew init' && git push${col_reset}"
     out "tip: install ${col_ylw}basher${col_reset} and ${col_ylw}pforret/setver${col_reset} for easy bash script version management"
@@ -265,7 +262,7 @@ main() {
     popd
     ;;
 
-  check|env)
+  check | env)
     ## leave this default action, it will make it easier to test your script
     #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
     #TIP:> $script_prefix check
@@ -274,8 +271,8 @@ main() {
     check_script_settings
     ;;
 
-
-  debug)
+  \
+    debug)
     out "print_with_out=yes"
     debug "print_with_log=yes"
     announce "print_with_announce=yes"
@@ -372,12 +369,19 @@ initialise_output() {
   error_prefix="${col_red}>${col_reset}"
 }
 
-out() {     ((quiet)) && true || printf '%b\n' "$*"; }
-debug() {   if ((verbose)); then out "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
-die() {     out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2 ; tput bel ; safe_exit ; }
-alert() {   out "${col_red}${char_alrt}${col_reset}: $*" >&2 ; }
+out() { ((quiet)) && true || printf '%b\n' "$*"; }
+debug() { if ((verbose)); then out "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
+die() {
+  out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
+  tput bel
+  safe_exit
+}
+alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; }
 success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
-announce() { out "${col_grn}${char_wait}${col_reset}  $*"; sleep 1 ; }
+announce() {
+  out "${col_grn}${char_wait}${col_reset}  $*"
+  sleep 1
+}
 progress() {
   ((quiet)) || (
     local screen_width
@@ -402,16 +406,16 @@ escape() { echo "$*" | sed 's/\//\\\//g'; }
 is_set() { [[ "$1" -gt 0 ]]; }
 
 slugify() {
-    # slugify <input> <separator>
-    # slugify "Jack, Jill & Clémence LTD"      => jack-jill-clemence-ltd
-    # slugify "Jack, Jill & Clémence LTD" "_"  => jack_jill_clemence_ltd
-    separator="${2:-}"
-    [[ -z "$separator" ]] && separator="-"
-    # shellcheck disable=SC2020
-    echo "$1" |
-        tr '[:upper:]' '[:lower:]' |
-        tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
-        awk '{
+  # slugify <input> <separator>
+  # slugify "Jack, Jill & Clémence LTD"      => jack-jill-clemence-ltd
+  # slugify "Jack, Jill & Clémence LTD" "_"  => jack_jill_clemence_ltd
+  separator="${2:-}"
+  [[ -z "$separator" ]] && separator="-"
+  # shellcheck disable=SC2020
+  echo "$1" |
+    tr '[:upper:]' '[:lower:]' |
+    tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
+    awk '{
           gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_]/," ",$0);
           gsub(/^  */,"",$0);
           gsub(/  *$/,"",$0);
@@ -419,27 +423,27 @@ slugify() {
           gsub(/[^a-z0-9\-]/,"");
           print;
           }' |
-        sed "s/-/$separator/g"
+    sed "s/-/$separator/g"
 }
 
 title_case() {
-    # title_case <input> <separator>
-    # title_case "Jack, Jill & Clémence LTD"     => JackJillClemenceLtd
-    # title_case "Jack, Jill & Clémence LTD" "_" => Jack_Jill_Clemence_Ltd
-    separator="${2:-}"
-    # shellcheck disable=SC2020
-    echo "$1" |
-        tr '[:upper:]' '[:lower:]' |
-        tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
-        awk '{ gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_-]/," ",$0); print $0; }' |
-        awk '{
+  # title_case <input> <separator>
+  # title_case "Jack, Jill & Clémence LTD"     => JackJillClemenceLtd
+  # title_case "Jack, Jill & Clémence LTD" "_" => Jack_Jill_Clemence_Ltd
+  separator="${2:-}"
+  # shellcheck disable=SC2020
+  echo "$1" |
+    tr '[:upper:]' '[:lower:]' |
+    tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
+    awk '{ gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_-]/," ",$0); print $0; }' |
+    awk '{
           for (i=1; i<=NF; ++i) {
               $i = toupper(substr($i,1,1)) tolower(substr($i,2))
           };
           print $0;
           }' |
-        sed "s/ /$separator/g" |
-        cut -c1-50
+    sed "s/ /$separator/g" |
+    cut -c1-50
 }
 
 ### interactive
@@ -455,7 +459,7 @@ ask() {
   # $1 = question
   # $2 = default value
   local ANSWER
-  if [[ -n "${2:-}" ]] ; then
+  if [[ -n "${2:-}" ]]; then
     read -r -p "$1 ($2) > " ANSWER
   else
     read -r -p "$1      > " ANSWER
@@ -522,45 +526,45 @@ show_usage() {
   '
 }
 
-check_last_version(){
+check_last_version() {
   (
-  # shellcheck disable=SC2164
-  pushd "$script_install_folder" &> /dev/null
-  if [[ -d .git ]] ; then
-    local remote
-    remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
-    progress "Check for latest version - $remote"
-    git remote update &> /dev/null
-    if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]] ; then
-      out "There is a more recent update of this script - run <<$script_prefix update>> to update"
+    # shellcheck disable=SC2164
+    pushd "$script_install_folder" &>/dev/null
+    if [[ -d .git ]]; then
+      local remote
+      remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
+      progress "Check for latest version - $remote"
+      git remote update &>/dev/null
+      if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]]; then
+        out "There is a more recent update of this script - run <<$script_prefix update>> to update"
+      fi
     fi
-  fi
-  # shellcheck disable=SC2164
-  popd &> /dev/null
+    # shellcheck disable=SC2164
+    popd &>/dev/null
   )
 }
 
-update_script_to_latest(){
+update_script_to_latest() {
   # run in background to avoid problems with modifying a running interpreted script
   (
-  sleep 1
-  cd "$script_install_folder" && git pull
+    sleep 1
+    cd "$script_install_folder" && git pull
   ) &
 }
 
 show_tips() {
   ((sourced)) && return 0
   # shellcheck disable=SC2016
-  grep <"${BASH_SOURCE[0]}" -v '$0' \
-  | awk \
+  grep <"${BASH_SOURCE[0]}" -v '$0' |
+    awk \
       -v green="$col_grn" \
       -v yellow="$col_ylw" \
       -v reset="$col_reset" \
       '
       /TIP: /  {$1=""; gsub(/«/,green); gsub(/»/,reset); print "*" $0}
       /TIP:> / {$1=""; print " " yellow $0 reset}
-      ' \
-  | awk \
+      ' |
+    awk \
       -v script_basename="$script_basename" \
       -v script_prefix="$script_prefix" \
       '{
@@ -572,6 +576,7 @@ show_tips() {
 
 check_script_settings() {
   if [[ -n $(filter_option_type flag) ]]; then
+    local name
     out "## ${col_grn}boolean flags${col_reset}:"
     filter_option_type flag |
       while read -r name; do
@@ -765,21 +770,21 @@ parse_options() {
   fi
 }
 
-require_binary(){
+require_binary() {
   binary="$1"
   path_binary=$(command -v "$binary" 2>/dev/null)
   [[ -n "$path_binary" ]] && debug "️$require_icon required [$binary] -> $path_binary" && return 0
   #
   words=$(echo "${2:-}" | wc -l)
   case $words in
-    0)  install_instructions="$install_package $1";;
-    1)  install_instructions="$install_package $2";;
-    *)  install_instructions="$2"
+  0) install_instructions="$install_package $1" ;;
+  1) install_instructions="$install_package $2" ;;
+  *) install_instructions="$2" ;;
   esac
   alert "$script_basename needs [$binary] but it cannot be found"
   alert "1) install package  : $install_instructions"
   alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
-  die   "Missing program/script [$binary]"
+  die "Missing program/script [$binary]"
 }
 
 folder_prep() {
@@ -817,38 +822,41 @@ recursive_readlink() {
 }
 
 lookup_script_data() {
-  readonly script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
-  readonly script_basename=$(basename "${BASH_SOURCE[0]}")
-  readonly execution_day=$(date "+%Y-%m-%d")
-  readonly execution_year=$(date "+%Y")
+  script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
+  script_basename=$(basename "${BASH_SOURCE[0]}")
+  execution_day=$(date "+%Y-%m-%d")
+  execution_year=$(date "+%Y")
 
-  script_install_path="${BASH_SOURCE[0]}"
+  local script_install_path="${BASH_SOURCE[0]}"
   debug "$info_icon Script path: $script_install_path"
   script_install_path=$(recursive_readlink "$script_install_path")
   debug "$info_icon Linked path: $script_install_path"
-  readonly script_install_folder="$( cd -P "$( dirname "$script_install_path" )" && pwd )"
+  script_install_folder="$(cd -P "$(dirname "$script_install_path")" && pwd)"
   debug "$info_icon In folder  : $script_install_folder"
+  local script_hash="?"
+  local script_lines="?"
   if [[ -f "$script_install_path" ]]; then
     script_hash=$(hash <"$script_install_path" 8)
     script_lines=$(awk <"$script_install_path" 'END {print NR}')
-  else
-    # can happen when script is sourced by e.g. bash_unit
-    script_hash="?"
-    script_lines="?"
   fi
 
   # get shell/operating system/versions
-  shell_brand="sh"
-  shell_version="?"
+  local shell_brand="sh"
+  local shell_version="?"
   [[ -n "${ZSH_VERSION:-}" ]] && shell_brand="zsh" && shell_version="$ZSH_VERSION"
   [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
   [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
   [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
   debug "$info_icon Shell type : $shell_brand - version $shell_version"
 
-  readonly os_kernel=$(uname -s)
+  local os_kernel
+  local os_version
+  local os_machine
+  local os_name
+  os_kernel=$(uname -s)
   os_version=$(uname -r)
   os_machine=$(uname -m)
+  os_name="?"
   install_package=""
   case "$os_kernel" in
   CYGWIN* | MSYS* | MINGW*)
@@ -862,8 +870,8 @@ lookup_script_data() {
   Linux | GNU*)
     if [[ $(command -v lsb_release) ]]; then
       # 'normal' Linux distributions
-      os_name=$(lsb_release -i    | awk -F: '{$1=""; gsub(/^[\s\t]+/,"",$2); gsub(/[\s\t]+$/,"",$2); print $2}' ) # Ubuntu/Raspbian
-      os_version=$(lsb_release -r | awk -F: '{$1=""; gsub(/^[\s\t]+/,"",$2); gsub(/[\s\t]+$/,"",$2); print $2}' ) # 20.04
+      os_name=$(lsb_release -i | awk -F: '{$1=""; gsub(/^[\s\t]+/,"",$2); gsub(/[\s\t]+$/,"",$2); print $2}')    # Ubuntu/Raspbian
+      os_version=$(lsb_release -r | awk -F: '{$1=""; gsub(/^[\s\t]+/,"",$2); gsub(/[\s\t]+$/,"",$2); print $2}') # 20.04
     else
       # Synology, QNAP,
       os_name="Linux"
@@ -896,10 +904,12 @@ lookup_script_data() {
   debug "$info_icon Running as : $USER@$HOSTNAME"
 
   # if run inside a git repo, detect for which remote repo it is
+  local git_repo_remote
+  local git_repo_root
   if git status &>/dev/null; then
-    readonly git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
+    git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
     debug "$info_icon git remote : $git_repo_remote"
-    readonly git_repo_root=$(git rev-parse --show-toplevel)
+    git_repo_root=$(git rev-parse --show-toplevel)
     debug "$info_icon git folder : $git_repo_root"
   else
     readonly git_repo_root=""
@@ -944,11 +954,11 @@ import_env_if_any() {
 initialise_output  # output settings
 lookup_script_data # find installation folder
 
-[[ $run_as_root == 1  ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
+[[ $run_as_root == 1 ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
 
-init_options       # set default values for flags & options
-import_env_if_any  # overwrite with .env if any
+init_options      # set default values for flags & options
+import_env_if_any # overwrite with .env if any
 
 if [[ $sourced -eq 0 ]]; then
   parse_options "$@"    # overwrite with specified options if any
