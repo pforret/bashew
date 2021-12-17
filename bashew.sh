@@ -827,7 +827,7 @@ lookup_script_data() {
   execution_day=$(date "+%Y-%m-%d")
   execution_year=$(date "+%Y")
 
-  local script_install_path="${BASH_SOURCE[0]}"
+  script_install_path="${BASH_SOURCE[0]}"
   debug "$info_icon Script path: $script_install_path"
   script_install_path=$(recursive_readlink "$script_install_path")
   debug "$info_icon Linked path: $script_install_path"
@@ -904,8 +904,6 @@ lookup_script_data() {
   debug "$info_icon Running as : $USER@$HOSTNAME"
 
   # if run inside a git repo, detect for which remote repo it is
-  local git_repo_remote
-  local git_repo_root
   if git status &>/dev/null; then
     git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
     debug "$info_icon git remote : $git_repo_remote"
