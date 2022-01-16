@@ -49,16 +49,21 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 
 ## 🔥 Usage
 
-    Usage: bashew.sh [-h] [-q] [-v] [-f] [-t <tmpd>] [-l <logd>] [-n <name>] <action>
-    Flags, options and parameters:
-        -h|--help      : [flag] show usage [default: off]
-        -q|--quiet     : [flag] no output [default: off]
-        -v|--verbose   : [flag] output more [default: off]
-        -f|--force     : [flag] do not ask for confirmation (always yes) [default: off]
-        -t|--tmpd <val>: [optn] folder for temp files  [default: .tmp]
-        -l|--logd <val>: [optn] folder for log files  [default: log]
-        -n|--name <val>: [optn] name of new script or project
-        <action>  : [parameter] action to perform: script/project/init/update
+```shell
+Program: bashew 1.16.8 by peter@forret.com
+Updated: Dec 17 21:28:04 2021
+Description: package_description
+Usage: bashew [-h] [-q] [-v] [-f] [-l <log_dir>] [-t <tmp_dir>] [-n <name>] <action>
+Flags, options and parameters:
+    -h|--help        : [flag] show usage [default: off]
+    -q|--quiet       : [flag] no output [default: off]
+    -v|--verbose     : [flag] output more [default: off]
+    -f|--force       : [flag] do not ask for confirmation (always yes) [default: off]
+    -l|--log_dir <?> : [option] folder for debug files   [default: /Users/pforret/log/bashew]
+    -t|--tmp_dir <?> : [option] folder for temp files  [default: /tmp/bashew]
+    -n|--name <?>    : [option] name of new script or project
+    <action>         : [parameter] action to perform: script/project/init/update
+```
 
 ### 1. create new bash script (without repo)
 ```shell
@@ -118,20 +123,24 @@ cd <newname>
 ## 🚀 Installation
 
 * manually
-
-        git clone https://github.com/pforret/bashew.git
-        ln -s bashew/bashew.sh /usr/local/bin
+````shell
+git clone https://github.com/pforret/bashew.git
+ln -s bashew/bashew.sh /usr/local/bin
+````
     
 * or with [basher](https://github.com/basherpm/basher) package manager
+  [![basher install](https://img.shields.io/badge/basher-install-white?logo=gnu-bash&style=flat)](https://basher.gitparade.com/package/)
 
-        basher install pforret/bashew
+````shell
+basher install pforret/bashew
+````
 
 ## 🙏 Acknowledgements
 
 * [bash_unit](https://github.com/pgrange/bash_unit): bash unit testing enterprise edition framework (used for CI/CD)
 * [shellcheck](https://github.com/koalaman/shellcheck): a static analysis tool for shell scripts (used for CI/CD)
 * [bash-boilerplate (2012)](https://github.com/oxyc/bash-boilerplate) on which I based my [bash-boilerplate (2020)](https://github.com/pforret/bash-boilerplate) which eventually became this [bashew](https://github.com/pforret/bashew)
-* Documentation from [Google](https://google.github.io/styleguide/shellguide.html), [BashPitfalls](https://mywiki.wooledge.org/BashPitfalls), [Microsoft](https://github.com/microsoft/code-with-engineering-playbook/blob/master/code-reviews/recipes/Bash.md)
+* Bash documentation from [Google](https://google.github.io/styleguide/shellguide.html), [BashPitfalls](https://mywiki.wooledge.org/BashPitfalls), [Microsoft](https://github.com/microsoft/code-with-engineering-playbook/blob/master/code-reviews/recipes/Bash.md)
 
 ## 🤔 What's that name? Bashew?
 * derived from 'bash new'

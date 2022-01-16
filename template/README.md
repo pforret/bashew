@@ -8,8 +8,6 @@
 
 # package_name
 
-![package_name](https://github.com/pforret/splashmark/raw/master/examples/size_github.jpg)
-
 package_description
 
 ## 🔥 Usage
