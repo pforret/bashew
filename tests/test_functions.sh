@@ -12,7 +12,13 @@
 
 setup_suite(){
   # shellcheck disable=SC1091
-  source "../template/script.sh"
+  if [[ -f "../template/script.sh" ]] ; then
+    source "../template/script.sh"
+  else
+    echo "script ["../template/script.sh"] could not be found"
+    exit 1
+  fi
+
   export FORCE_COLOR=true
   export LC_ALL="en_US.UTF-8"
   export LANG="en_US.UTF-8"
@@ -29,7 +35,6 @@ test_has_unicode() {
 
 test_lower_case() {
   assert_equals "james bond jr." "$(lower_case "James Bond Jr.")"
-
   ((unicode)) && assert_equals "été de garçon" "$(lower_case "Été de Garçon")"
 }
 
