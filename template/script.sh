@@ -224,20 +224,18 @@ function log_to_file() { [[ -n ${log_file:-} ]] && echo "$(date '+%H:%M:%S') | $
 ### string processing
 function lower_case() {
   if [[ -n "$1" ]] ; then
-    echo "$*"
+    <<< "$*" awk '{print tolower($0)}'
   else
-    cat
-  fi |
-  tr '[:upper:]' '[:lower:]';
+    awk '{print tolower($0)}'
+  fi
   }
 
 function upper_case() {
   if [[ -n "$1" ]] ; then
-    echo "$*"
+    <<< "$*" awk '{print tolower($0)}'
   else
-    cat
-  fi |
-  tr '[:lower:]' '[:upper:]';
+    awk '{print toupper($0)}'
+  fi
   }
 
 function transliterate() {
