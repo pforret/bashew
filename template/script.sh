@@ -232,7 +232,7 @@ function lower_case() {
 
 function upper_case() {
   if [[ -n "$1" ]] ; then
-    <<< "$*" awk '{print tolower($0)}'
+    <<< "$*" awk '{print toupper($0)}'
   else
     awk '{print toupper($0)}'
   fi
