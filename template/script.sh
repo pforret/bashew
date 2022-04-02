@@ -39,6 +39,9 @@ list_options() {
   ###     <type> = ? for optional parameters - e.g. param|1|output expects 1 parameter <output>
   ###     <type> = n for list parameter    - e.g. param|n|inputs expects <input1> <input2> ... <input99>
   ###     will be available as $<long> in the script after option/param parsing
+  ### choice:  is like a param, but when there are limited options
+  ###     choice|<type>|<long>|<description>|choice1,choice2,...
+  ###     <type> = 1 for single parameters - e.g. param|1|output expects 1 parameter <output>
   echo -n "
 #commented lines will be filtered
 flag|h|help|show usage
@@ -47,8 +50,8 @@ flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
-param|1|action|action to perform: action1/action2
-param|?|input|input file/text
+choice|1|action|action to perform|action1,action2,check,env,update
+#param|?|input|input file/text
 " | grep -v '^#' | grep -v '^\s*$'
 }
 
@@ -63,7 +66,7 @@ main() {
   case $action in
   action1)
     #TIP: use «$script_prefix action1» to ...
-    #TIP:> $script_prefix action1 input.txt
+    #TIP:> $script_prefix action1
     do_action1
     ;;
 
@@ -105,7 +108,8 @@ main() {
 do_action1() {
   log_to_file "action1"
   # Examples of required binaries/scripts and how to install them
-  require_binary "convert" "imagemagick"
+  # require_binary "ffmpeg"
+  # require_binary "convert" "imagemagick"
   # require_binary "progressbar" "basher install pforret/progressbar"
   # (code)
 }
@@ -138,6 +142,8 @@ hash() {
 force=0
 help=0
 verbose=0
+error_prefix=""
+
 #to enable verbose even before option parsing
 [[ $# -gt 0 ]] && [[ $1 == "-v" ]] && verbose=1
 quiet=0
@@ -162,18 +168,18 @@ initialise_output() {
 
   [[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
   if [[ $unicode -gt 0 ]]; then
-    char_succ="✅"
+    char_succes="✅"
     char_fail="⛔"
-    char_alrt="✴️"
+    char_alert="✴️"
     char_wait="⏳"
     info_icon="🌼"
     config_icon="🌱"
     clean_icon="🧽"
     require_icon="🔌"
   else
-    char_succ="OK "
+    char_succes="OK "
     char_fail="!! "
-    char_alrt="?? "
+    char_alert="?? "
     char_wait="..."
     info_icon="(i)"
     config_icon="[c]"
@@ -190,8 +196,8 @@ die() {
   tput bel
   safe_exit
 }
-alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; }
-success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
+alert() { out "${col_red}${char_alert}${col_reset}: $*" >&2; }
+success() { out "${col_grn}${char_succes}${col_reset}  $*"; }
 announce() {
   out "${col_grn}${char_wait}${col_reset}  $*"
   sleep 1
@@ -211,24 +217,43 @@ progress() {
   )
 }
 
-calc() { echo "" | awk "{print $*} ; "; }
+function calc() { echo "" | awk "{print $*} ; "; }
 
-log_to_file() { [[ -n ${log_file:-} ]] && echo "$(date '+%H:%M:%S') | $*" >>"$log_file"; }
+function log_to_file() { [[ -n ${log_file:-} ]] && echo "$(date '+%H:%M:%S') | $*" >>"$log_file"; }
 
 ### string processing
-lower_case() { echo "$*" | tr '[:upper:]' '[:lower:]'; }
-upper_case() { echo "$*" | tr '[:lower:]' '[:upper:]'; }
+function lower_case() {
+  if [[ -n "$1" ]] ; then
+    echo "$*"
+  else
+    cat
+  fi |
+  tr '[:upper:]' '[:lower:]';
+  }
 
-slugify() {
+function upper_case() {
+  if [[ -n "$1" ]] ; then
+    echo "$*"
+  else
+    cat
+  fi |
+  tr '[:lower:]' '[:upper:]';
+  }
+
+function transliterate() {
+  # remove all characters with accents/diacritics to latin alphabet
+  # shellcheck disable=SC2020
+  sed 'y/àáâäæãåāǎçćčèéêëēėęěîïííīįìǐłñńôöòóœøōǒõßśšûüǔùǖǘǚǜúūÿžźżÀÁÂÄÆÃÅĀǍÇĆČÈÉÊËĒĖĘĚÎÏÍÍĪĮÌǏŁÑŃÔÖÒÓŒØŌǑÕẞŚŠÛÜǓÙǕǗǙǛÚŪŸŽŹŻ/aaaaaaaaaccceeeeeeeeiiiiiiiilnnooooooooosssuuuuuuuuuuyzzzAAAAAAAAACCCEEEEEEEEIIIIIIIILNNOOOOOOOOOSSSUUUUUUUUUUYZZZ/'
+  }
+
+function slugify() {
   # slugify <input> <separator>
   # slugify "Jack, Jill & Clémence LTD"      => jack-jill-clemence-ltd
   # slugify "Jack, Jill & Clémence LTD" "_"  => jack_jill_clemence_ltd
   separator="${2:-}"
   [[ -z "$separator" ]] && separator="-"
-  # shellcheck disable=SC2020
-  echo "$1" |
-    tr '[:upper:]' '[:lower:]' |
-    tr 'àáâäæãåāçćčèéêëēėęîïííīįìłñńôöòóœøōõßśšûüùúūÿžźż' 'aaaaaaaaccceeeeeeeiiiiiiilnnoooooooosssuuuuuyzzz' |
+    lower_case "$1" |
+    transliterate |
     awk '{
           gsub(/[\[\]@#$%^&*;,.:()<>!?\/+=_]/," ",$0);
           gsub(/^  */,"",$0);
@@ -337,6 +362,11 @@ show_usage() {
           fulltext = fulltext sprintf("\n    %-17s: [parameters] %s (1 or more)","<"$3">",$4);
           oneline  = oneline " <" $3 " …>"
      }
+    }
+  $1 ~ /choice/ {
+        fulltext = fulltext sprintf("\n    %-17s: [choice] %s","<"$3">",$4);
+        if($5!=""){fulltext = fulltext "  [options: " $5 "]"; }
+        oneline  = oneline " <" $3 ">"
     }
     END {print oneline; print fulltext}
   '
@@ -449,6 +479,21 @@ check_script_settings() {
     out " "
   fi
 
+  if [[ -n $(filter_option_type choice) ]]; then
+    if ((piped)); then
+      debug "Skip choices for .env files"
+    else
+      out "## ${col_grn}choice${col_reset}:"
+      filter_option_type choice |
+        while read -r name; do
+          # shellcheck disable=SC2015
+          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+        done
+      echo " "
+    fi
+    out " "
+  fi
+
   out "## ${col_grn}required commands${col_reset}:"
   list_required_binaries
 }
@@ -481,8 +526,9 @@ init_options() {
     $1 ~ /flag/   && $5 != "" {print $3 "=\"" $5 "\"; "}
     $1 ~ /option/ && $5 == "" {print $3 "=\"\"; "}
     $1 ~ /option/ && $5 != "" {print $3 "=\"" $5 "\"; "}
-    $1 ~ /list/ {print $3 "=(); "}
-    $1 ~ /secret/ {print $3 "=\"\"; "}
+    $1 ~ /choice/   {print $3 "=\"\"; "}
+    $1 ~ /list/     {print $3 "=(); "}
+    $1 ~ /secret/   {print $3 "=\"\"; "}
     ')
   if [[ -n "$init_command" ]]; then
     eval "$init_command"
@@ -490,6 +536,7 @@ init_options() {
 }
 
 expects_single_params() { list_options | grep 'param|1|' >/dev/null; }
+expects_choices() { list_options | grep 'choice|1' >/dev/null; }
 expects_optional_params() { list_options | grep 'param|?|' >/dev/null; }
 expects_multi_param() { list_options | grep 'param|n|' >/dev/null; }
 
@@ -548,9 +595,44 @@ parse_options() {
 
   ) && safe_exit
 
+    local list_singles
+    local single_count
+    local choices
+    local single_params
   ## then run through the given parameters
+  if expects_choices; then
+    choices=$(list_options | awk -F"|" '
+      $1 == "choice" && $2 == 1 {print $3}
+      ')
+    list_singles=$(echo "$choices" | xargs)
+    single_count=$(echo "$choices" | count_words)
+    debug "$config_icon Expect : $single_count choice(s): $list_singles"
+    [[ $# -eq 0 ]] && die "need the choice(s) [$list_singles]"
+
+  local choices_list
+  local valid_choice
+    for param in $choices; do
+      [[ $# -eq 0 ]] && die "need choice [$param]"
+      [[ -z "$1" ]]  && die "need choice [$param]"
+      debug "$config_icon Assign : $param=$1"
+      # check if choice is in list
+      choices_list=$(list_options | awk -F"|" -v choice="$param"  '$1 == "choice" && $3 = choice {print $5}')
+      valid_choice=$(<<< "$choices_list" tr "," "\n" | grep "$1")
+      [[ -z "$valid_choice" ]] && die "choice [$1] is not valid, should be in list [$choices_list]"
+
+      eval "$param=\"$1\""
+      shift
+    done
+  else
+    debug "$config_icon No choices to process"
+    choices=""
+    single_count=0
+  fi
+
   if expects_single_params; then
-    single_params=$(list_options | grep 'param|1|' | cut -d'|' -f3)
+    single_params=$(list_options | awk -F"|" '
+      $1 == "param" && $2 == 1 {print $3}
+      ')
     list_singles=$(echo "$single_params" | xargs)
     single_count=$(echo "$single_params" | count_words)
     debug "$config_icon Expect : $single_count single parameter(s): $list_singles"

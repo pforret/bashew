@@ -17,7 +17,7 @@ jobs:
       run: ls ./*.sh | xargs bash
 
     - name: Unit testing with bash_unit
-      run: tests/bash_unit tests/test_*
+      run: curl https://raw.githubusercontent.com/pgrange/bash_unit/master/bash_unit -o tests/bash_unit && chmod +x tests/bash_unit && tests/bash_unit tests/test_*
 
   macos:
     runs-on: macos-latest
@@ -33,4 +33,4 @@ jobs:
       run: ls ./*.sh | xargs bash
 
     - name: Unit testing with bash_unit
-      run: tests/bash_unit tests/test_*
+      run: curl https://raw.githubusercontent.com/pgrange/bash_unit/master/bash_unit -o tests/bash_unit && chmod +x tests/bash_unit && tests/bash_unit tests/test_*

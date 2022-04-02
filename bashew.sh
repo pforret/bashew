@@ -37,7 +37,7 @@ get_author_data() {
 
   # if there is prior data, use that
   [[ -n ${BASHEW_AUTHOR_FULLNAME:-} ]] && guess_fullname="$BASHEW_AUTHOR_FULLNAME"
-  [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]] && guess_email="$BASHEW_AUTHOR_EMAIL"
+  [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]]    && guess_email="$BASHEW_AUTHOR_EMAIL"
   [[ -n ${BASHEW_AUTHOR_USERNAME:-} ]] && guess_username="$BASHEW_AUTHOR_USERNAME"
 
   # if there is git config data, use that
@@ -149,6 +149,7 @@ main() {
   require_binary git
   local model="script"
 
+  # shellcheck disable=SC2154
   action=$(lower_case "$action")
   case $action in
   script | new)

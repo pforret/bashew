@@ -14,6 +14,7 @@ setup_suite(){
   # shellcheck disable=SC1091
   if [[ -f "../template/script.sh" ]] ; then
     source "../template/script.sh"
+    echo "# load bashew as library script"
   else
     echo "script ["../template/script.sh"] could not be found"
     exit 1
@@ -26,6 +27,7 @@ setup_suite(){
   [[ ! $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=0
   [[ ! $(echo -e '\xE2\x98\xA0') == '☠' ]] && unicode=0
   [[ ! $(echo -e '\xc3\xa9') == 'é' ]] && unicode=0
+  echo "# unicode = $unicode"
 }
 
 test_has_unicode() {

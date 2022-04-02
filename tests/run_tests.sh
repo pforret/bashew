@@ -8,11 +8,12 @@ clear
 test_unit=$(command -v bash_unit)
 if [[ -x "$test_unit" ]] ; then
   cd "$script_path" && "$test_unit" -f tap test_*
-  tested=1
-fi
-
-if [[ $tested -eq 0  ]] ; then
+else
   echo "This script uses https://github.com/pgrange/bash_unit for bash unit testing"
   os_name="$(uname -s)"
-  [[ "$os_name" == "Darwin" ]] && echo "Use 'brew install bash_unit' to install bash_unit"
+  if [[ "$os_name" == "Darwin" ]] ; then
+    echo "Use 'brew install bash_unit' to install bash_unit"
+  else
+    echo "First install bash_unit (check the page on how to do this)"
+  fi
 fi
