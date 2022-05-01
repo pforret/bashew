@@ -54,8 +54,6 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 * folder for temporary files (with automatic cleanup)
 * folder for log files (with automatic cleanup)
 * correct determination of script installation folder (resolve symbolic links)
-
-### 
 * easy CI/CD for Github (with shellcheck)
 * see [features.md](doc/features.md) for detailed information
 
