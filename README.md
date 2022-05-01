@@ -31,20 +31,32 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
      
 ## 🎯 Features
 
-* contained in 1 single file (no external dependencies)
+### Self-contained
+* all code contained in 1 single file (no external dependencies)
 * comes with `README.md`, `CHANGELOG.md`, ... markdown files
 * edit only main() function and subroutines in beginning of script, all template code is at the end of the script
+
+### Option parsing
 * definition of flags/options/parameters in 1 place only
 * definition of dependencies (like curl, ffmpeg, imagemagick...) in 1 place only
 * automatic creation of usage text based on definition above
 * short/long option parsing, based on definition above
-* several functions for output to stdout/stderr, with intelligent color usage (not when output is piped)
-* reads a .env configuration file, if there is one
-* predefined quiet (no output) and verbose (more output) modes
+
+### [function library](doc/functions.md)
+* `IO:` functions for IO, with intelligent color usage (not when output is piped) (e.g. `IO.success`, `IO.die`)
+* `Str:` functions for string manipulation (e.g `Str:lower`, `Str:digest`)
+* `Os:` functions for e.g. required program checking (e.g. `Os:require convert imagemagick`)
+* 
+
+### batteries included
+* read multiple .env configuration files
+* predefined `--quiet` (no output) and `--verbose` (more output) modes
 * folder for temporary files (with automatic cleanup)
 * folder for log files (with automatic cleanup)
-* easy CI/CD for Github (with shellcheck)
 * correct determination of script installation folder (resolve symbolic links)
+
+### 
+* easy CI/CD for Github (with shellcheck)
 * see [features.md](doc/features.md) for detailed information
 
 ## 🔥 Usage

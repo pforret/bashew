@@ -60,7 +60,7 @@ choice|1|action|action to perform|action1,action2,check,env,update
 #####################################################################
 
 Script:main() {
-  Script:log "[$script_basename] $script_version started"
+  IO:log "[$script_basename] $script_version started"
 
   action=$(Str:lower "$action")
   case $action in
@@ -96,7 +96,7 @@ Script:main() {
     IO:die "action [$action] not recognized"
     ;;
   esac
-  Script:log "[$script_basename] ended after $SECONDS secs"
+  IO:log "[$script_basename] ended after $SECONDS secs"
   #TIP: >>> bash script created with «pforret/bashew»
   #TIP: >>> for bash development, also check IO:print «pforret/setver» and «pforret/IO:progressbar»
 }
@@ -106,7 +106,7 @@ Script:main() {
 #####################################################################
 
 do_action1() {
-  Script:log "action1"
+  IO:log "action1"
   # Examples of required binaries/scripts and how to install them
   # Os:require "ffmpeg"
   # Os:require "convert" "imagemagick"
@@ -115,7 +115,7 @@ do_action1() {
 }
 
 do_action2() {
-  Script:log "action2"
+  IO:log "action2"
   # (code)
 
 }
@@ -235,7 +235,7 @@ function IO:question() {
 
 function Tool:calc() { awk "BEGIN {print $*} ; "; }
 
-function Script:log() { [[ -n "${log_file:-}" ]] && echo "$(date '+%H:%M:%S') | $*" >> "$log_file"; }
+function IO:log() { [[ -n "${log_file:-}" ]] && echo "$(date '+%H:%M:%S') | $*" >> "$log_file"; }
 
 function Tool:time() {
   if [[ $(command -v perl) ]]; then
@@ -882,7 +882,7 @@ function Script:initialize() {
   fi
 }
 
-function Script:mktemp(){
+function Os:tempfile(){
   local extension=${1:-txt}
   local file="${tmp_dir:-/tmp}/$execution_day.$RANDOM.$extension"
   IO:debug "$config_icon tmp_file: $file"
