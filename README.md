@@ -34,13 +34,13 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 ### Self-contained
 * all code contained in 1 single file (no external dependencies)
 * comes with `README.md`, `CHANGELOG.md`, ... markdown files
-* edit only main() function and subroutines in beginning of script, all template code is at the end of the script
+* edit only `Script:main()` function and subroutines in beginning of script, all template code is at the end of the script
 
 ### Option parsing
 * definition of flags/options/parameters in 1 place only
-* definition of dependencies (like curl, ffmpeg, imagemagick...) in 1 place only
 * automatic creation of usage text based on definition above
 * short/long option parsing, based on definition above
+* option `--lorem [value]` is available inside the script as `$lorem`
 
 ### [function library](doc/functions.md)
 * `IO:` functions for IO, with intelligent color usage (not when output is piped) (e.g. `IO.success`, `IO.die`)
@@ -48,7 +48,7 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 * `Os:` functions for e.g. required program checking (e.g. `Os:require convert imagemagick`)
 
 ### [batteries included](doc/features.md)
-* read multiple .env configuration files
+* read multiple `.env` configuration files
 * predefined `--quiet` (no output) and `--verbose` (more output) modes
 * folder for temporary files (with automatic cleanup)
 * folder for log files (with automatic cleanup)
