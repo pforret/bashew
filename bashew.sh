@@ -241,6 +241,7 @@ main() {
     delete_stuff template
     delete_stuff tests/disabled
     delete_stuff tests/test_bashew.sh
+    delete_stuff tests/test_bashew_init.sh
     delete_stuff tests/test_functions.sh
     delete_stuff assets
     delete_stuff .tmp

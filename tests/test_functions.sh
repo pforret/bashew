@@ -35,24 +35,24 @@ test_has_unicode() {
   assert_equals 1 "$unicode"
 }
 
-test_lower_case() {
-  assert_equals "james bond jr." "$(lower_case "James Bond Jr.")"
-  ((unicode)) && assert_equals "été de garçon" "$(lower_case "Été de Garçon")"
+test_lower() {
+  assert_equals "james bond jr." "$(Str:lower "James Bond Jr.")"
+  ((unicode)) && assert_equals "été de garçon" "$(Str:lower "Été de Garçon")"
 }
 
-test_upper_case() {
-  assert_equals "JAMES BOND JR." "$(upper_case "James Bond Jr.")"
-  assert_equals "ÉTÉ DE GARÇON" "$(upper_case "Été de Garçon")"
+test_upper() {
+  assert_equals "JAMES BOND JR." "$(Str:upper "James Bond Jr.")"
+  assert_equals "ÉTÉ DE GARÇON" "$(Str:upper "Été de Garçon")"
 }
 
-test_title_case(){
-  assert_equals "JamesBondJr" "$(title_case "James Bond Jr.")"
-  assert_equals "It_Was_Just_A_Question" "$(title_case "It was just a question?!" "_")"
+test_title(){
+  assert_equals "JamesBondJr" "$(Str:title "James Bond Jr.")"
+  assert_equals "It_Was_Just_A_Question" "$(Str:title "It was just a question?!" "_")"
 }
 
 test_slugify(){
-  assert_equals "james-bond-jr" "$(slugify "James Bond Jr.")"
-  assert_equals "il_etait_une_fois" "$(slugify "Il était une fois ..." "_")"
-  assert_equals "but-is-it-jack-or-jill" "$(slugify "but... is it Jack, or Jill???")"
-  assert_equals "internationalisation" "$(slugify "ïñtèrnätìønālíśâtïön")"
+  assert_equals "james-bond-jr" "$(Str:slugify "James Bond Jr.")"
+  assert_equals "il_etait_une_fois" "$(Str:slugify "Il était une fois ..." "_")"
+  assert_equals "but-is-it-jack-or-jill" "$(Str:slugify "but... is it Jack, or Jill???")"
+  assert_equals "internationalisation" "$(Str:slugify "ïñtèrnätìønālíśâtïön")"
 }
