@@ -46,22 +46,20 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 * `IO:` functions for IO, with intelligent color usage (not when output is piped) (e.g. `IO.success`, `IO.die`)
 * `Str:` functions for string manipulation (e.g `Str:lower`, `Str:digest`)
 * `Os:` functions for e.g. required program checking (e.g. `Os:require convert imagemagick`)
-* 
 
-### batteries included
+### [batteries included](doc/features.md)
 * read multiple .env configuration files
 * predefined `--quiet` (no output) and `--verbose` (more output) modes
 * folder for temporary files (with automatic cleanup)
 * folder for log files (with automatic cleanup)
 * correct determination of script installation folder (resolve symbolic links)
 * easy CI/CD for Github (with shellcheck)
-* see [features.md](doc/features.md) for detailed information
 
 ## 🔥 Usage
 
 ```shell
-Program: bashew 1.16.8 by peter@forret.com
-Updated: Dec 17 21:28:04 2021
+Program: bashew 1.18.2 by peter@forret.com
+Updated: May  1 16:49:18 2022
 Description: package_description
 Usage: bashew [-h] [-q] [-v] [-f] [-l <log_dir>] [-t <tmp_dir>] [-n <name>] <action>
 Flags, options and parameters:
