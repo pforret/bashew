@@ -82,9 +82,17 @@ bashew.sh -f -n "../list.sh" script # will create new script ../list.sh
 
 Example:
 ```shell
-$ bashew.sh -f script
-…  Creating script ./towel_nappers.sh ...
-./towel_nappers.sh
+$ bashew script
+⏳  1. first we need the information of the author
+Author full name         (pforret) > Peter Forret
+Author email             (peter@forret.com) > 
+Author (github) username (pforret) > 
+⏳  2. now we need the path and name of this new script/repo
+Script name (./bespoke_bunny.sh) > 
+⏳  3. give some description of what the script should do
+Script description (This is my script bespoke_bunny) > process log files
+⏳  Creating script ./bespoke_bunny.sh ...
+./bespoke_bunny.sh
 
 $ bashew.sh -f -q script
 ./iffiest_prepays.sh
