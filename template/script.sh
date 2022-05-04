@@ -18,6 +18,7 @@ action=""
 script_prefix=""
 script_basename=""
 install_package=""
+temp_files=()
 
 function Option:config() {
   ### Change the next lines to reflect which flags/options/parameters you need
@@ -61,6 +62,8 @@ choice|1|action|action to perform|action1,action2,check,env,update
 
 Script:main() {
   IO:log "[$script_basename] $script_version started"
+
+  Os:require "awk"
 
   action=$(Str:lower "$action")
   case $action in
@@ -128,17 +131,6 @@ do_action2() {
 # removed -e because it made basic [[ testing ]] difficult
 set -uo pipefail
 IFS=$'\n\t'
-function Str:digest() {
-  local length=${1:-6}
-  if [[ -n $(command -v md5sum) ]]; then
-    # regular linux
-    md5sum | cut -c1-"$length"
-  else
-    # macos
-    md5 | cut -c1-"$length"
-  fi
-}
-
 force=0
 help=0
 error_prefix=""
@@ -156,15 +148,22 @@ function IO:initialize() {
   [[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && sourced=1 || sourced=0
   [[ -t 1 ]] && piped=0 || piped=1 # detect if output is piped
   if [[ $piped -eq 0 ]]; then
-    col_reset="\033[0m"
-    col_red="\033[1;31m"
-    col_grn="\033[1;32m"
-    col_ylw="\033[1;33m"
+    txtReset=$(tput sgr0)
+    txtError=$(tput setaf 160)
+    txtInfo=$(tput setaf 2)
+    txtWarn=$(tput setaf 214)
+    txtBold=$(tput bold)
+    txtItalic=$(tput sitm)
+    txtUnderline=$(tput smul)
   else
-    col_reset=""
-    col_red=""
-    col_grn=""
-    col_ylw=""
+    txtReset=""
+    txtError=""
+    txtInfo=""
+    txtInfo=""
+    txtWarn=""
+    txtBold=""
+    txtItalic=""
+    txtUnderline=""
   fi
 
   [[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
@@ -187,22 +186,36 @@ function IO:initialize() {
     clean_icon="[c]"
     require_icon="[r]"
   fi
-  error_prefix="${col_red}>${col_reset}"
+  error_prefix="${txtError}>${txtReset}"
 }
 
-function IO:print() { ((quiet)) && true || printf '%b\n' "$*"; }
-function IO:debug() { if ((verbose)); then IO:print "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
+function IO:print() {
+  ((quiet)) && true || printf '%b\n' "$*"
+  }
+
+function IO:debug() {
+  ((verbose)) && IO:print "${txtInfo}# $* ${txtReset}" >&2 || true
+  }
+
 function IO:die() {
-  IO:print "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
+  IO:print "${txtError}${char_fail} $script_basename${txtReset}: $*" >&2
   tput bel
   Script:exit
 }
-function IO:alert() { IO:print "${col_red}${char_alert}${col_reset}: $*" >&2; }
-function IO:success() { IO:print "${col_grn}${char_succes}${col_reset}  $*"; }
+
+function IO:alert() {
+  IO:print "${txtWarn}${char_alert}${txtReset}: $*" >&2
+  }
+
+function IO:success() {
+  IO:print "${txtInfo}${char_succes}${txtReset}  $*"
+}
+
 function IO:announce() {
-  IO:print "${col_grn}${char_wait}${col_reset}  $*"
+  IO:print "${txtInfo}${char_wait}${txtReset}  $*"
   sleep 1
 }
+
 function IO:progress() {
   ((quiet)) || (
     local screen_width
@@ -233,9 +246,13 @@ function IO:question() {
   [[ -z "$ANSWER" ]] && echo "$DEFAULT" || echo "$ANSWER"
 }
 
-function Tool:calc() { awk "BEGIN {print $*} ; "; }
+function IO:log() {
+  [[ -n "${log_file:-}" ]] && echo "$(date '+%H:%M:%S') | $*" >> "$log_file"
+  }
 
-function IO:log() { [[ -n "${log_file:-}" ]] && echo "$(date '+%H:%M:%S') | $*" >> "$log_file"; }
+function Tool:calc() {
+  awk "BEGIN {print $*} ; "
+  }
 
 function Tool:time() {
   if [[ $(command -v perl) ]]; then
@@ -250,6 +267,7 @@ function Tool:time() {
 }
 
 ### string processing
+
 function Str:trim() {
     local var="$*"
     # remove leading whitespace characters
@@ -321,6 +339,18 @@ function Str:title() {
     cut -c1-50
 }
 
+function Str:digest() {
+  local length=${1:-6}
+  if [[ -n $(command -v md5sum) ]]; then
+    # regular linux
+    md5sum | cut -c1-"$length"
+  else
+    # macos
+    md5 | cut -c1-"$length"
+  fi
+}
+
+
 trap "IO:die \"ERROR \$? after \$SECONDS seconds \n\
 \${error_prefix} last command : '\$BASH_COMMAND' \" \
 \$(< \$script_install_path awk -v lineno=\$LINENO \
@@ -328,17 +358,148 @@ trap "IO:die \"ERROR \$? after \$SECONDS seconds \n\
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 
 Script:exit() {
-  [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
+  for temp_file in "${temp_files[@]}" ; do
+    [[ -f "$temp_file" ]] && (
+      IO:debug "Delete temp file [$temp_file]"
+      rm -f "$temp_file"
+    )
+  done
   trap - INT TERM EXIT
   IO:debug "$script_basename finished after $SECONDS seconds"
   exit 0
 }
 
+Script:check_version() {
+  (
+    # shellcheck disable=SC2164
+    pushd "$script_install_folder" &>/dev/null
+    if [[ -d .git ]]; then
+      local remote
+      remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
+      IO:progress "Check for latest version - $remote"
+      git remote update &>/dev/null
+      if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]]; then
+        IO:print "There is a more recent update of this script - run <<$script_prefix update>> to update"
+      fi
+    fi
+    # shellcheck disable=SC2164
+    popd &>/dev/null
+  )
+}
+
+Script:git_pull() {
+  # run in background to avoid problems with modifying a running interpreted script
+  (
+    sleep 1
+    cd "$script_install_folder" && git pull
+  ) &
+}
+
+Script:show_tips() {
+  ((sourced)) && return 0
+  # shellcheck disable=SC2016
+  grep <"${BASH_SOURCE[0]}" -v '$0' |
+    awk \
+      -v green="$txtInfo" \
+      -v yellow="$txtWarn" \
+      -v reset="$txtReset" \
+      '
+      /TIP: /  {$1=""; gsub(/«/,green); gsub(/»/,reset); print "*" $0}
+      /TIP:> / {$1=""; print " " yellow $0 reset}
+      ' |
+    awk \
+      -v script_basename="$script_basename" \
+      -v script_prefix="$script_prefix" \
+      '{
+      gsub(/\$script_basename/,script_basename);
+      gsub(/\$script_prefix/,script_prefix);
+      print ;
+      }'
+}
+
+Script:check() {
+  local name
+  if [[ -n $(Option:filter flag) ]]; then
+    IO:print "## ${txtInfo}boolean flags${txtReset}:"
+    Option:filter flag |
+      while read -r name; do
+        if ((piped)); then
+          eval "echo \"$name=\$${name:-}\""
+        else
+          eval "echo -n \"$name=\$${name:-}  \""
+        fi
+      done
+    IO:print " "
+    IO:print " "
+  fi
+
+  if [[ -n $(Option:filter option) ]]; then
+    IO:print "## ${txtInfo}option defaults${txtReset}:"
+    Option:filter option |
+      while read -r name; do
+        if ((piped)); then
+          eval "echo \"$name=\$${name:-}\""
+        else
+          eval "echo -n \"$name=\$${name:-}  \""
+        fi
+      done
+    IO:print " "
+    IO:print " "
+  fi
+
+  if [[ -n $(Option:filter list) ]]; then
+    IO:print "## ${txtInfo}list options${txtReset}:"
+    Option:filter list |
+      while read -r name; do
+        if ((piped)); then
+          eval "echo \"$name=(\${${name}[@]})\""
+        else
+          eval "echo -n \"$name=(\${${name}[@]})  \""
+        fi
+      done
+    IO:print " "
+    IO:print " "
+  fi
+
+  if [[ -n $(Option:filter param) ]]; then
+    if ((piped)); then
+      IO:debug "Skip parameters for .env files"
+    else
+      IO:print "## ${txtInfo}parameters${txtReset}:"
+      Option:filter param |
+        while read -r name; do
+          # shellcheck disable=SC2015
+          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+        done
+      echo " "
+    fi
+    IO:print " "
+  fi
+
+  if [[ -n $(Option:filter choice) ]]; then
+    if ((piped)); then
+      IO:debug "Skip choices for .env files"
+    else
+      IO:print "## ${txtInfo}choice${txtReset}:"
+      Option:filter choice |
+        while read -r name; do
+          # shellcheck disable=SC2015
+          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+        done
+      echo " "
+    fi
+    IO:print " "
+  fi
+
+  IO:print "## ${txtInfo}required commands${txtReset}:"
+  Script:show_required
+}
+
 Option:usage() {
-  IO:print "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
-  IO:print "Updated: ${col_grn}$script_modified${col_reset}"
-  IO:print "Description: package_description"
-  echo -n "Usage: $script_basename"
+  IO:print "Program : ${txtInfo}$script_basename${txtReset}  by ${txtWarn}$script_author${txtReset}"
+  IO:print "Version : ${txtInfo}v$script_version${txtReset} (${txtWarn}$script_modified${txtReset})"
+  IO:print "Purpose : ${txtInfo}package_description${txtReset}"
+  echo -n  "Usage   : $script_basename"
   Option:config |
     awk '
   BEGIN { FS="|"; OFS=" "; oneline="" ; fulltext="Flags, options and parameters:"}
@@ -381,132 +542,6 @@ Option:usage() {
     }
     END {print oneline; print fulltext}
   '
-}
-
-Script:check_version() {
-  (
-    # shellcheck disable=SC2164
-    pushd "$script_install_folder" &>/dev/null
-    if [[ -d .git ]]; then
-      local remote
-      remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
-      IO:progress "Check for latest version - $remote"
-      git remote update &>/dev/null
-      if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]]; then
-        IO:print "There is a more recent update of this script - run <<$script_prefix update>> to update"
-      fi
-    fi
-    # shellcheck disable=SC2164
-    popd &>/dev/null
-  )
-}
-
-Script:git_pull() {
-  # run in background to avoid problems with modifying a running interpreted script
-  (
-    sleep 1
-    cd "$script_install_folder" && git pull
-  ) &
-}
-
-Script:show_tips() {
-  ((sourced)) && return 0
-  # shellcheck disable=SC2016
-  grep <"${BASH_SOURCE[0]}" -v '$0' |
-    awk \
-      -v green="$col_grn" \
-      -v yellow="$col_ylw" \
-      -v reset="$col_reset" \
-      '
-      /TIP: /  {$1=""; gsub(/«/,green); gsub(/»/,reset); print "*" $0}
-      /TIP:> / {$1=""; print " " yellow $0 reset}
-      ' |
-    awk \
-      -v script_basename="$script_basename" \
-      -v script_prefix="$script_prefix" \
-      '{
-      gsub(/\$script_basename/,script_basename);
-      gsub(/\$script_prefix/,script_prefix);
-      print ;
-      }'
-}
-
-Script:check() {
-  local name
-  if [[ -n $(Option:filter flag) ]]; then
-    IO:print "## ${col_grn}boolean flags${col_reset}:"
-    Option:filter flag |
-      while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=\$${name:-}\""
-        else
-          eval "echo -n \"$name=\$${name:-}  \""
-        fi
-      done
-    IO:print " "
-    IO:print " "
-  fi
-
-  if [[ -n $(Option:filter option) ]]; then
-    IO:print "## ${col_grn}option defaults${col_reset}:"
-    Option:filter option |
-      while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=\$${name:-}\""
-        else
-          eval "echo -n \"$name=\$${name:-}  \""
-        fi
-      done
-    IO:print " "
-    IO:print " "
-  fi
-
-  if [[ -n $(Option:filter list) ]]; then
-    IO:print "## ${col_grn}list options${col_reset}:"
-    Option:filter list |
-      while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=(\${${name}[@]})\""
-        else
-          eval "echo -n \"$name=(\${${name}[@]})  \""
-        fi
-      done
-    IO:print " "
-    IO:print " "
-  fi
-
-  if [[ -n $(Option:filter param) ]]; then
-    if ((piped)); then
-      IO:debug "Skip parameters for .env files"
-    else
-      IO:print "## ${col_grn}parameters${col_reset}:"
-      Option:filter param |
-        while read -r name; do
-          # shellcheck disable=SC2015
-          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
-        done
-      echo " "
-    fi
-    IO:print " "
-  fi
-
-  if [[ -n $(Option:filter choice) ]]; then
-    if ((piped)); then
-      IO:debug "Skip choices for .env files"
-    else
-      IO:print "## ${col_grn}choice${col_reset}:"
-      Option:filter choice |
-        while read -r name; do
-          # shellcheck disable=SC2015
-          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
-        done
-      echo " "
-    fi
-    IO:print " "
-  fi
-
-  IO:print "## ${col_grn}required commands${col_reset}:"
-  Script:show_required
 }
 
 function Option:filter() {
@@ -748,7 +783,6 @@ function Os:folder() {
   fi
 }
 
-
 function Os:follow_link() {
   [[ ! -L "$1" ]] && echo "$1" && return 0
   local file_folder
@@ -765,6 +799,41 @@ function Os:follow_link() {
   [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &>/dev/null && pwd)"
   IO:debug "$info_icon Symbolic ln: $1 -> [$symlink]"
   Os:follow_link "$link_folder/$link_name"
+}
+
+function Os:notify(){
+  # cf https://levelup.gitconnected.com/5-modern-bash-scripting-techniques-that-only-a-few-programmers-know-4abb58ddadad
+  local message="$1"
+  local source="${2:-$script_basename}"
+
+  [[ -n $(command -v notify-send) ]] && notify-send "$source" "$message" # for Linux
+  [[ -n $(command -v osascript) ]] && osascript -e "display notification \"$message\" with title \"$source\"" # for MacOS
+}
+
+function Os:busy(){
+  # show spinner as long as process $pid is running
+    local pid="$1"
+    local message="${2:-}"
+    local frames=( "|" "/" "-" "\\" )
+    (
+      while kill -0 "$pid" &> /dev/null;
+      do
+          for frame in "${frames[@]}";
+          do
+              printf "\r[ $frame ] %s..." "$message"
+              sleep 0.5
+          done
+      done
+      printf "\n"
+    )
+}
+
+function Os:beep(){
+  local type="${1=-info}"
+  case $type in
+  *)
+    tput bel
+  esac
 }
 
 function Script:meta() {
@@ -886,6 +955,7 @@ function Os:tempfile(){
   local extension=${1:-txt}
   local file="${tmp_dir:-/tmp}/$execution_day.$RANDOM.$extension"
   IO:debug "$config_icon tmp_file: $file"
+  temp_files+=("$file")
   echo "$file"
 }
 

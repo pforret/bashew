@@ -65,6 +65,19 @@ IO:success "Some text"
 
 ## OS functions
 
+### Os:beep()
+```shell
+Os:beep 
+# make a sound
+```
+
+### Os:busy()
+```shell
+do_something_slow_in_background &
+Os:busy $!  "Doing the slow thing"
+# show an animated spinner while process is running
+```
+
 ### Os:folder()
 ```shell
 Os:folder "/some/folder" 30
@@ -75,6 +88,14 @@ Os:folder "/some/folder" 30
 ```shell
 Os:follow_link "./do_this"
 # return actual path of a file, following all symbolic links 
+```
+
+### Os:notify()
+```shell
+Os:notify "Start downloading ..."
+# or
+Os:notify "Start compiling ..." "Library Compiler"
+# send notification to desktop 
 ```
 
 ### Os:require()
