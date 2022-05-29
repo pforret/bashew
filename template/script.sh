@@ -194,7 +194,8 @@ function IO:print() {
   }
 
 function IO:debug() {
-  ((verbose)) && IO:print "${txtInfo}# $* ${txtReset}" >&2 || true
+  ((verbose)) && IO:print "${txtInfo}# $* ${txtReset}" >&2
+  true
   }
 
 function IO:die() {
@@ -204,15 +205,15 @@ function IO:die() {
 }
 
 function IO:alert() {
-  IO:print "${txtWarn}${char_alert}${txtReset}: $*" >&2
+  IO:print "${txtWarn}${char_alert}${txtReset}: ${txtUnderline}$*${txtReset}" >&2
   }
 
 function IO:success() {
-  IO:print "${txtInfo}${char_succes}${txtReset}  $*"
+  IO:print "${txtInfo}${char_succes}${txtReset}  ${txtBold}$*${txtReset}"
 }
 
 function IO:announce() {
-  IO:print "${txtInfo}${char_wait}${txtReset}  $*"
+  IO:print "${txtInfo}${char_wait}${txtReset}  ${txtItalic}$*${txtReset}"
   sleep 1
 }
 
@@ -938,7 +939,6 @@ function Script:meta() {
 }
 
 function Script:initialize() {
-  tmp_file=""
   log_file=""
   if [[ -n "${tmp_dir:-}" ]]; then
     # clean up TMP folder after 1 day
