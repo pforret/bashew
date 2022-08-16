@@ -57,7 +57,7 @@ to initialize a bashew-based **REPO** with CI/CD you just cloned (cf `3.`)
 
 ## 🔥 Usage
 
-```shell
+```ini
 Program: bashew 1.18.2 by peter@forret.com
 Updated: May  1 16:49:18 2022
 Description: package_description
@@ -81,7 +81,7 @@ bashew.sh -f -n "../list.sh" script # will create new script ../list.sh
 ```
 
 Example:
-```shell
+```console
 $ bashew script
 ⏳  1. first we need the information of the author
 Author full name         (pforret) > Peter Forret
@@ -94,61 +94,65 @@ Script description (This is my script bespoke_bunny) > process log files
 ⏳  Creating script ./bespoke_bunny.sh ...
 ./bespoke_bunny.sh
 
-$ bashew.sh -f -q script
-./iffiest_prepays.sh
+$ bashew -f script 
+⏳  Creating script ./mediums_appease.sh ...
+./mediums_appease.sh
 ```
 
 ### 2. create new bash project folder/repo (with README.md, CI/CD)
-```shell
-bashew.sh project               # will interactively ask for author & script details
-bashew.sh -f project            # will create new project with random name
-bashew.sh -f -n "tango" project # will create new project in folder "tango"
+```console
+$ bashew project               # will interactively ask for author & script details
+or
+$ bashew -f project            # will create new project with random name
+or
+$ bashew -f -n "tango" project # will create new project in folder "tango"
 ```
 
 Example:
+```console
+$ bashew -f project
+⏳  Creating project ./bounden_brawled ...
+CHANGELOG.md README.md VERSION.md LICENSE .gitignore .env.example bounden_brawled.sh bitbucket-pipelines .github  
+✅  next step: 'cd ./bounden_brawled' and start scripting!
+```
 
-    > bashew.sh -f project
-    …  Creating project ./tendon_mingle ...
-    CHANGELOG.md README.md VERSION.md LICENSE .gitignore tendon_mingle.sh bitbucket-pipelines .github/workflows  
-    ✔  next step: 'cd ./tendon_mingle' and start scripting!
-  
 ### 3. create a bash script repo, with CI/CD, with README, with tests, with versioning ... 
 
 * on [github.com/pforret/bashew](https://github.com/pforret/bashew), click on '**Use this template**'
 * then clone your new repo
-```shell
-git clone https://github.com/<you>/<your repo>.git
-cd <your repo>
-./bashew.sh init             # will ask for details and initialise/clean up the repo
+```console
+$ git clone https://github.com/<you>/<your repo>.git
+$ cd <your repo>
+$ ./bashew.sh init             # will ask for details and initialise/clean up the repo
 ```
 
 #### and then, if you have [setver.sh](https://github.com/pforret/setver):
-```shell
-setver push          # will commit and push new code
-setver new patch     # will set new version to 0.0.1
-setver set 1.0.0     # when your first working version is committed
+```console
+$ setver push          # will commit and push new code
+$ setver new patch     # will set new version to 0.0.1
+$ setver set 1.0.0     # when your first working version is committed
 ```
   
 ### 4. git clone into new repo
-```shell
-git clone --depth=1 https://github.com/pforret/bashew.git <newname>
-cd <newname>
-./bashew.sh init             # will ask for details and iniialise/clean up the repo
+```console
+$ git clone --depth=1 https://github.com/pforret/bashew.git <newname>
+$ cd <newname>
+$ ./bashew.sh init             # will ask for details and iniialise/clean up the repo
 ```
 
 ## 🚀 Installation
 
 * manually
-````shell
-git clone https://github.com/pforret/bashew.git
-ln -s bashew/bashew.sh /usr/local/bin
+````console
+$ git clone https://github.com/pforret/bashew.git
+$ ln -s bashew/bashew.sh /usr/local/bin
 ````
     
 * or with [basher](https://github.com/basherpm/basher) package manager
   [![basher install](https://img.shields.io/badge/basher-install-white?logo=gnu-bash&style=flat)](https://basher.gitparade.com/package/)
 
-````shell
-basher install pforret/bashew
+````console
+$ basher install pforret/bashew
 ````
 
 ## 🙏 Acknowledgements
