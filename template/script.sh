@@ -359,7 +359,7 @@ trap "IO:die \"ERROR \$? after \$SECONDS seconds \n\
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 
 Script:exit() {
-  for temp_file in "${temp_files[@]}" ; do
+  for temp_file in "${temp_files[@]-}" ; do
     [[ -f "$temp_file" ]] && (
       IO:debug "Delete temp file [$temp_file]"
       rm -f "$temp_file"
