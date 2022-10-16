@@ -232,6 +232,21 @@ function IO:progress() {
   )
 }
 
+function IO:countdown(){
+  local seconds=${1:-5}
+  local message=${2:-Countdown :}
+
+  if ((piped)); then
+    IO:print "$message $seconds seconds"
+  else
+    for (( i = 0; i < "$seconds"; i++ )); do
+      IO:progress "${txtInfo}$message $((seconds - i)) seconds${txtReset}"
+      sleep 1
+    done
+    IO:print "                         "
+  fi
+}
+
 ### interactive
 function IO:confirm() {
   ((force)) && return 0
@@ -351,6 +366,20 @@ function Str:digest() {
   fi
 }
 
+# Gha: function should only be run inside of a Github Action
+
+function Gha:finish(){
+    [[ -z "${RUNNER_OS:-}" ]] && IO:die "This should only run inside a Github Action, don't run it on your machine"
+    git config user.name "Bashew Runner"
+    git config user.email "actions@users.noreply.github.com"
+    timestamp=$(date -u)
+    message="$timestamp < $script_basename $script_version"
+    git add -A
+    git commit -m "${message}" || exit 0
+    git pull --rebase
+    git push
+    exit 0
+}
 
 trap "IO:die \"ERROR \$? after \$SECONDS seconds \n\
 \${error_prefix} last command : '\$BASH_COMMAND' \" \
@@ -838,16 +867,16 @@ function Os:beep(){
 }
 
 function Script:meta() {
-  local git_repo_remote=""
-  local git_repo_root=""
-  local os_kernel=""
-  local os_machine=""
-  local os_name=""
-  local os_version=""
-  local script_hash="?"
-  local script_lines="?"
-  local shell_brand=""
-  local shell_version=""
+  git_repo_remote=""
+  git_repo_root=""
+  os_kernel=""
+  os_machine=""
+  os_name=""
+  os_version=""
+  script_hash="?"
+  script_lines="?"
+  shell_brand=""
+  shell_version=""
 
   script_prefix=$(basename "${BASH_SOURCE[0]}" .sh)
   script_basename=$(basename "${BASH_SOURCE[0]}")
@@ -961,14 +990,22 @@ function Os:tempfile(){
 
 function Os:import_env() {
   local env_files
-  env_files=(
-    "$script_install_folder/.env"
-    "$script_install_folder/.$script_prefix.env"
-    "$script_install_folder/$script_prefix.env"
-    "./.env"
-    "./.$script_prefix.env"
-    "./$script_prefix.env"
-    )
+  if [[ $(pwd) == "$script_install_folder" ]] ; then
+    env_files=(
+      "$script_install_folder/.env"
+      "$script_install_folder/.$script_prefix.env"
+      "$script_install_folder/$script_prefix.env"
+      )
+  else
+    env_files=(
+      "$script_install_folder/.env"
+      "$script_install_folder/.$script_prefix.env"
+      "$script_install_folder/$script_prefix.env"
+      "./.env"
+      "./.$script_prefix.env"
+      "./$script_prefix.env"
+      )
+  fi
 
   for env_file in "${env_files[@]}"; do
     if [[ -f "$env_file" ]]; then
