@@ -4,7 +4,7 @@
 ![GH stars](https://img.shields.io/github/stars/author_username/package_name)
 ![GH tag](https://img.shields.io/github/v/tag/author_username/package_name)
 ![GH License](https://img.shields.io/github/license/author_username/package_name)
-[![basher install](https://img.shields.io/badge/basher-install-white?logo=gnu-bash&style=flat)](https://basher.gitparade.com/package/)
+[![basher install](https://img.shields.io/badge/basher-install-white?logo=gnu-bash&style=flat)](https://www.basher.it/package/)
 
 # package_name
 

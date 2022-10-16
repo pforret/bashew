@@ -640,12 +640,12 @@ function Option:parse() {
         BEGIN { FS="|"; OFS=" ";}
         $1 ~ /flag/   &&  "-"$2 == opt {print $3"=1"}
         $1 ~ /flag/   && "--"$3 == opt {print $3"=1"}
-        $1 ~ /option/ &&  "-"$2 == opt {print $3"=$2; shift"}
-        $1 ~ /option/ && "--"$3 == opt {print $3"=$2; shift"}
-        $1 ~ /list/ &&  "-"$2 == opt {print $3"+=($2); shift"}
-        $1 ~ /list/ && "--"$3 == opt {print $3"=($2); shift"}
-        $1 ~ /secret/ &&  "-"$2 == opt {print $3"=$2; shift #noshow"}
-        $1 ~ /secret/ && "--"$3 == opt {print $3"=$2; shift #noshow"}
+        $1 ~ /option/ &&  "-"$2 == opt {print $3"=${2:-}; shift"}
+        $1 ~ /option/ && "--"$3 == opt {print $3"=${2:-}; shift"}
+        $1 ~ /list/ &&  "-"$2 == opt {print $3"+=(${2:-}); shift"}
+        $1 ~ /list/ && "--"$3 == opt {print $3"=(${2:-}); shift"}
+        $1 ~ /secret/ &&  "-"$2 == opt {print $3"=${2:-}; shift #noshow"}
+        $1 ~ /secret/ && "--"$3 == opt {print $3"=${2:-}; shift #noshow"}
         ')
     if [[ -n "$save_option" ]]; then
       if echo "$save_option" | grep shift >>/dev/null; then
