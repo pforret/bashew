@@ -901,6 +901,10 @@ function Script:meta() {
   [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
   [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
   IO:debug "$info_icon Shell type : $shell_brand - version $shell_version"
+  if [[ "$shell_brand" == "bash" && "${BASH_VERSINFO:-0}" -lt 4 ]]; then
+    IO:die "Bash version 4 or higher is required - current version = $BASH_VERSINFO"
+  fi
+
 
   os_kernel=$(uname -s)
   os_version=$(uname -r)
