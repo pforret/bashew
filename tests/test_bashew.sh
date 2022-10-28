@@ -10,8 +10,8 @@
 #  assert_not_equals "a string" "a string" "a string should be different from another string"
 #  fake ps echo hello world
 
-root_folder="$(cd .. && pwd)" # tests/.. is root folder
-root_script="$root_folder/bashew.sh" # take largest .sh (in case there are smaller helper .sh scripts present)
+root_folder="$(cd .. && pwd)"              # tests/.. is root folder
+root_script="$root_folder/bashew.sh"       # take largest .sh (in case there are smaller helper .sh scripts present)
 template_folder="$(cd ../template && pwd)" # tests/../template is root folder
 template_script="$template_folder/script.sh"
 
@@ -29,7 +29,7 @@ test_3_create_normal_script() {
 
 test_1_show_option_verbose() {
   # script without parameters should give usage info
-  assert_equals 1 "$("$template_script"  2>&1 | grep -c "verbose")"
+  assert_equals 1 "$("$template_script" 2>&1 | grep -c "verbose")"
 }
 
 test_2_action_check_works() {
@@ -37,4 +37,3 @@ test_2_action_check_works() {
   assert_equals 1 "$("$template_script" check 2>&1 | grep -c "verbose=")"
   assert_equals 1 "$("$template_script" check 2>&1 | grep -c "log_dir=")"
 }
-

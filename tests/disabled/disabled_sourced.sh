@@ -10,7 +10,7 @@
 #  assert_not_equals "a string" "a string" "a string should be different from another string"
 #  fake ps echo hello world
 
-setup_suite(){
+setup_suite() {
   # shellcheck disable=SC1091
   source "../template/normal.sh"
 }
