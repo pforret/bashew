@@ -37,7 +37,7 @@ get_author_data() {
 
   # if there is prior data, use that
   [[ -n ${BASHEW_AUTHOR_FULLNAME:-} ]] && guess_fullname="$BASHEW_AUTHOR_FULLNAME"
-  [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]]    && guess_email="$BASHEW_AUTHOR_EMAIL"
+  [[ -n ${BASHEW_AUTHOR_EMAIL:-} ]] && guess_email="$BASHEW_AUTHOR_EMAIL"
   [[ -n ${BASHEW_AUTHOR_USERNAME:-} ]] && guess_username="$BASHEW_AUTHOR_USERNAME"
 
   # if there is git config data, use that
@@ -104,13 +104,13 @@ copy_and_replace() {
     gsub(/bashew_version/,bashew_version);
     print;
     }' \
-    <"$input" \
-    >"$output"
+    < "$input" \
+    > "$output"
 }
 
 random_word() {
   (
-    if aspell -v >/dev/null 2>&1; then
+    if aspell -v > /dev/null 2>&1; then
       aspell -d en dump master | aspell -l en expand
     elif [[ -f /usr/share/dict/words ]]; then
       # works on MacOS
@@ -152,155 +152,155 @@ main() {
   # shellcheck disable=SC2154
   action=$(lower_case "$action")
   case $action in
-  script | new)
-    if [[ -n "${name:-}" ]] && [[ ! "$name" == " " ]]; then
-      debug "Using [$name] as name"
-      get_author_data "$name"
-    else
-      random_name="$(random_word)_$(random_word).sh"
-      debug "Using [$random_name] as name"
-      get_author_data "./$random_name"
-    fi
-    announce "Creating script $new_name ..."
-    # shellcheck disable=SC2154
-    copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
-    chmod +x "$new_name"
-    echo "$new_name"
-    ;;
+    script | new)
+      if [[ -n "${name:-}" ]] && [[ ! "$name" == " " ]]; then
+        debug "Using [$name] as name"
+        get_author_data "$name"
+      else
+        random_name="$(random_word)_$(random_word).sh"
+        debug "Using [$random_name] as name"
+        get_author_data "./$random_name"
+      fi
+      announce "Creating script $new_name ..."
+      # shellcheck disable=SC2154
+      copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
+      chmod +x "$new_name"
+      echo "$new_name"
+      ;;
 
-  project)
-    if [[ -n "${name:-}" ]] && [[ ! "$name" == " " ]]; then
-      get_author_data "$name"
-    else
-      random_name="$(random_word)_$(random_word)"
-      get_author_data "./$random_name"
-    fi
-    if [[ ! -d "$new_name" ]]; then
-      announce "Creating project $new_name ..."
-      mkdir "$new_name"
-      template_folder="$script_install_folder/template"
-      ## first do all files that can change
-      for file in "$template_folder"/*.md "$template_folder/LICENSE" "$template_folder"/.gitignore "$template_folder"/.env.example; do
+    project)
+      if [[ -n "${name:-}" ]] && [[ ! "$name" == " " ]]; then
+        get_author_data "$name"
+      else
+        random_name="$(random_word)_$(random_word)"
+        get_author_data "./$random_name"
+      fi
+      if [[ ! -d "$new_name" ]]; then
+        announce "Creating project $new_name ..."
+        mkdir "$new_name"
+        template_folder="$script_install_folder/template"
+        ## first do all files that can change
+        for file in "$template_folder"/*.md "$template_folder/LICENSE" "$template_folder"/.gitignore "$template_folder"/.env.example; do
+          bfile=$(basename "$file")
+          ((quiet)) || echo -n "$bfile "
+          new_file="$new_name/$bfile"
+          copy_and_replace "$file" "$new_file"
+        done
+        ((quiet)) || echo -n "$clean_name.sh "
+        copy_and_replace "$template_folder/$model.sh" "$new_name/$clean_name.sh"
+        chmod +x "$new_name/$clean_name.sh"
+        ## now the CI/CD files
+        if [[ -f "$template_folder/bitbucket-pipelines.yml" ]]; then
+          ((quiet)) || echo -n "bitbucket-pipelines "
+          cp "$template_folder/bitbucket-pipelines.yml" "$new_name/"
+        fi
+        if [[ -d "$template_folder/.github" ]]; then
+          ((quiet)) || echo -n ".github "
+          cp -r "$template_folder/.github" "$new_name/.github"
+        fi
+
+        ((quiet)) || echo " "
+        if confirm "Do you want to 'git init' the new project?"; then
+          (pushd "$new_name" && git init && git add . && popd || return) > /dev/null 2>&1
+        fi
+        success "next step: 'cd $new_name' and start scripting!"
+      else
+        alert "Folder [$new_name] already exists, cannot make a new project there"
+      fi
+      ;;
+
+    init)
+      repo_name=$(basename "$script_install_folder")
+      [[ "$repo_name" == "bashew" ]] && die "You can only run the '$script_basename init' of a *new* repo, derived from the bashew template on Github."
+      [[ ! -d ".git" ]] && die "You can only run '$script_basename init' in the root of your repo"
+      [[ ! -d "template" ]] && die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from pforret/bashew?"
+      [[ ! -f "$script_install_folder/template/$model.sh" ]] && die "$model.sh is not a valid template"
+      new_name="$repo_name.sh"
+      get_author_data "./$new_name"
+      announce "Creating script $new_name ..."
+      # shellcheck disable=SC2154
+      for file in template/*.md template/LICENSE template/.gitignore template/.gitignore; do
         bfile=$(basename "$file")
         ((quiet)) || echo -n "$bfile "
-        new_file="$new_name/$bfile"
+        new_file="./$bfile"
+        rm -f "$new_file"
         copy_and_replace "$file" "$new_file"
       done
-      ((quiet)) || echo -n "$clean_name.sh "
-      copy_and_replace "$template_folder/$model.sh" "$new_name/$clean_name.sh"
-      chmod +x "$new_name/$clean_name.sh"
-      ## now the CI/CD files
-      if [[ -f "$template_folder/bitbucket-pipelines.yml" ]]; then
-        ((quiet)) || echo -n "bitbucket-pipelines "
-        cp "$template_folder/bitbucket-pipelines.yml" "$new_name/"
+      copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
+      chmod +x "$new_name"
+      git add "$new_name"
+      alt_dir=$(dirname "$new_name")
+      alt_base=$(basename "$new_name" .sh)
+      alt_name="$alt_dir/$alt_base"
+      if [[ ! "$alt_name" == "$new_name" ]]; then
+        # create a "do_this" alias for "do_this.sh"
+        ln -s "$new_name" "$alt_name"
+        git add "$alt_name"
       fi
-      if [[ -d "$template_folder/.github" ]]; then
-        ((quiet)) || echo -n ".github "
-        cp -r "$template_folder/.github" "$new_name/.github"
-      fi
+      announce "Now cleaning up unnecessary bashew files ..."
+      delete_stuff template
+      delete_stuff tests/disabled
+      delete_stuff tests/test_bashew.sh
+      delete_stuff tests/test_bashew_init.sh
+      delete_stuff tests/test_functions.sh
+      delete_stuff assets
+      delete_stuff .tmp
+      delete_stuff log
+      delete_stuff doc
+      debug "Delete script [bashew.sh] ..."
+      (
+        sleep 1
+        rm -f bashew.sh bashew
+      ) & # delete will happen after the script is finished
+      success "script $new_name created!"
+      success "now do: ${col_ylw}git commit -a -m 'after bashew init' && git push${col_reset}"
+      out "tip: install ${col_ylw}basher${col_reset} and ${col_ylw}pforret/setver${col_reset} for easy bash script version management"
+      ;;
 
-      ((quiet)) || echo " "
-      if confirm "Do you want to 'git init' the new project?"; then
-        (pushd "$new_name" && git init && git add . && popd || return) >/dev/null 2>&1
-      fi
-      success "next step: 'cd $new_name' and start scripting!"
-    else
-      alert "Folder [$new_name] already exists, cannot make a new project there"
-    fi
-    ;;
+    update)
+      pushd "$script_install_folder" || die "No access to folder [$script_install_folder]"
+      git pull || die "Cannot update with git"
+      # shellcheck disable=SC2164
+      popd
+      ;;
 
-  init)
-    repo_name=$(basename "$script_install_folder")
-    [[ "$repo_name" == "bashew" ]] && die "You can only run the '$script_basename init' of a *new* repo, derived from the bashew template on Github."
-    [[ ! -d ".git" ]] && die "You can only run '$script_basename init' in the root of your repo"
-    [[ ! -d "template" ]] && die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from pforret/bashew?"
-    [[ ! -f "$script_install_folder/template/$model.sh" ]] && die "$model.sh is not a valid template"
-    new_name="$repo_name.sh"
-    get_author_data "./$new_name"
-    announce "Creating script $new_name ..."
-    # shellcheck disable=SC2154
-    for file in template/*.md template/LICENSE template/.gitignore template/.gitignore; do
-      bfile=$(basename "$file")
-      ((quiet)) || echo -n "$bfile "
-      new_file="./$bfile"
-      rm -f "$new_file"
-      copy_and_replace "$file" "$new_file"
-    done
-    copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
-    chmod +x "$new_name"
-    git add "$new_name"
-    alt_dir=$(dirname "$new_name")
-    alt_base=$(basename "$new_name" .sh)
-    alt_name="$alt_dir/$alt_base"
-    if [[ ! "$alt_name" == "$new_name" ]]; then
-      # create a "do_this" alias for "do_this.sh"
-      ln -s "$new_name" "$alt_name"
-      git add "$alt_name"
-    fi
-    announce "Now cleaning up unnecessary bashew files ..."
-    delete_stuff template
-    delete_stuff tests/disabled
-    delete_stuff tests/test_bashew.sh
-    delete_stuff tests/test_bashew_init.sh
-    delete_stuff tests/test_functions.sh
-    delete_stuff assets
-    delete_stuff .tmp
-    delete_stuff log
-    delete_stuff doc
-    debug "Delete script [bashew.sh] ..."
-    (
-      sleep 1
-      rm -f bashew.sh bashew
-    ) & # delete will happen after the script is finished
-    success "script $new_name created!"
-    success "now do: ${col_ylw}git commit -a -m 'after bashew init' && git push${col_reset}"
-    out "tip: install ${col_ylw}basher${col_reset} and ${col_ylw}pforret/setver${col_reset} for easy bash script version management"
-    ;;
+    check | env)
+      ## leave this default action, it will make it easier to test your script
+      #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
+      #TIP:> $script_prefix check
+      #TIP: use «$script_prefix env» to generate an example .env file
+      #TIP:> $script_prefix env > .env
+      check_script_settings
+      ;;
 
-  update)
-    pushd "$script_install_folder" || die "No access to folder [$script_install_folder]"
-    git pull || die "Cannot update with git"
-    # shellcheck disable=SC2164
-    popd
-    ;;
+    \
+      debug)
+      out "print_with_out=yes"
+      debug "print_with_log=yes"
+      announce "print_with_announce=yes"
+      success "print_with_success=yes"
+      progress "print_with_progress=yes"
+      echo ""
+      alert "print_with_alert=yes"
 
-  check | env)
-    ## leave this default action, it will make it easier to test your script
-    #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
-    #TIP:> $script_prefix check
-    #TIP: use «$script_prefix env» to generate an example .env file
-    #TIP:> $script_prefix env > .env
-    check_script_settings
-    ;;
+      hash3=$(echo "1234567890" | hash 3)
+      hash6=$(echo "1234567890" | hash)
+      out "hash3=$hash3"
+      out "hash6=$hash6"
+      out "script_basename=$script_basename"
+      out "script_author=$script_author"
+      out "escape1 = $(escape "/forward/slash")"
+      out "escape2 = $(escape '\backward\slash')"
+      out "lowercase = $(lower_case 'AbCdEfGhIjKlMnÔû')"
+      out "uppercase = $(upper_case 'AbCdEfGhIjKlMnÔû')"
+      out "slugify   = $(slugify 'AbCdEfGhIjKlMnÔû')"
+      # shellcheck disable=SC2015
+      is_set "$force" && out "force=$force (true)" || out "force=$force (false)"
+      ;;
 
-  \
-    debug)
-    out "print_with_out=yes"
-    debug "print_with_log=yes"
-    announce "print_with_announce=yes"
-    success "print_with_success=yes"
-    progress "print_with_progress=yes"
-    echo ""
-    alert "print_with_alert=yes"
-
-    hash3=$(echo "1234567890" | hash 3)
-    hash6=$(echo "1234567890" | hash)
-    out "hash3=$hash3"
-    out "hash6=$hash6"
-    out "script_basename=$script_basename"
-    out "script_author=$script_author"
-    out "escape1 = $(escape "/forward/slash")"
-    out "escape2 = $(escape '\backward\slash')"
-    out "lowercase = $(lower_case 'AbCdEfGhIjKlMnÔû')"
-    out "uppercase = $(upper_case 'AbCdEfGhIjKlMnÔû')"
-    out "slugify   = $(slugify 'AbCdEfGhIjKlMnÔû')"
-    # shellcheck disable=SC2015
-    is_set "$force" && out "force=$force (true)" || out "force=$force (false)"
-    ;;
-
-  *)
-    die "param [$action] not recognized"
-    ;;
+    *)
+      die "param [$action] not recognized"
+      ;;
   esac
 }
 
@@ -387,7 +387,7 @@ announce() {
 progress() {
   ((quiet)) || (
     local screen_width
-    screen_width=$(tput cols 2>/dev/null || echo 80)
+    screen_width=$(tput cols 2> /dev/null || echo 80)
     local rest_of_line
     rest_of_line=$((screen_width - 5))
 
@@ -399,7 +399,7 @@ progress() {
   )
 }
 
-log_to_file() { [[ -n ${log_file:-} ]] && echo "$(date '+%H:%M:%S') | $*" >>"$log_file"; }
+log_to_file() { [[ -n ${log_file:-} ]] && echo "$(date '+%H:%M:%S') | $*" >> "$log_file"; }
 
 ### string processing
 lower_case() { echo "$*" | tr '[:upper:]' '[:lower:]'; }
@@ -531,18 +531,18 @@ show_usage() {
 check_last_version() {
   (
     # shellcheck disable=SC2164
-    pushd "$script_install_folder" &>/dev/null
+    pushd "$script_install_folder" &> /dev/null
     if [[ -d .git ]]; then
       local remote
       remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
       progress "Check for latest version - $remote"
-      git remote update &>/dev/null
-      if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]]; then
+      git remote update &> /dev/null
+      if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2> /dev/null) -gt 0 ]]; then
         out "There is a more recent update of this script - run <<$script_prefix update>> to update"
       fi
     fi
     # shellcheck disable=SC2164
-    popd &>/dev/null
+    popd &> /dev/null
   )
 }
 
@@ -557,7 +557,7 @@ update_script_to_latest() {
 show_tips() {
   ((sourced)) && return 0
   # shellcheck disable=SC2016
-  grep <"${BASH_SOURCE[0]}" -v '$0' |
+  grep < "${BASH_SOURCE[0]}" -v '$0' |
     awk \
       -v green="$col_grn" \
       -v yellow="$col_ylw" \
@@ -657,9 +657,9 @@ init_options() {
   fi
 }
 
-expects_single_params() { list_options | grep 'param|1|' >/dev/null; }
-expects_optional_params() { list_options | grep 'param|?|' >/dev/null; }
-expects_multi_param() { list_options | grep 'param|n|' >/dev/null; }
+expects_single_params() { list_options | grep 'param|1|' > /dev/null; }
+expects_optional_params() { list_options | grep 'param|?|' > /dev/null; }
+expects_multi_param() { list_options | grep 'param|n|' > /dev/null; }
 
 parse_options() {
   if [[ $# -eq 0 ]]; then
@@ -693,7 +693,7 @@ parse_options() {
         $1 ~ /secret/ && "--"$3 == opt {print $3"=$2; shift #noshow"}
         ')
     if [[ -n "$save_option" ]]; then
-      if echo "$save_option" | grep shift >>/dev/null; then
+      if echo "$save_option" | grep shift >> /dev/null; then
         local save_var
         save_var=$(echo "$save_option" | cut -d= -f1)
         debug "$config_icon parameter: ${save_var}=$2"
@@ -774,14 +774,14 @@ parse_options() {
 
 require_binary() {
   binary="$1"
-  path_binary=$(command -v "$binary" 2>/dev/null)
+  path_binary=$(command -v "$binary" 2> /dev/null)
   [[ -n "$path_binary" ]] && debug "️$require_icon required [$binary] -> $path_binary" && return 0
   #
   words=$(echo "${2:-}" | wc -l)
   case $words in
-  0) install_instructions="$install_package $1" ;;
-  1) install_instructions="$install_package $2" ;;
-  *) install_instructions="$2" ;;
+    0) install_instructions="$install_package $1" ;;
+    1) install_instructions="$install_package $2" ;;
+    *) install_instructions="$2" ;;
   esac
   alert "$script_basename needs [$binary] but it cannot be found"
   alert "1) install package  : $install_instructions"
@@ -812,13 +812,13 @@ recursive_readlink() {
   local link_name
   file_folder="$(dirname "$1")"
   # resolve relative to absolute path
-  [[ "$file_folder" != /* ]] && link_folder="$(cd -P "$file_folder" &>/dev/null && pwd)"
+  [[ "$file_folder" != /* ]] && link_folder="$(cd -P "$file_folder" &> /dev/null && pwd)"
   local symlink
   symlink=$(readlink "$1")
   link_folder=$(dirname "$symlink")
   link_name=$(basename "$symlink")
   [[ -z "$link_folder" ]] && link_folder="$file_folder"
-  [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &>/dev/null && pwd)"
+  [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &> /dev/null && pwd)"
   debug "$info_icon Symbolic ln: $1 -> [$symlink]"
   recursive_readlink "$link_folder/$link_name"
 }
@@ -838,8 +838,8 @@ lookup_script_data() {
   local script_hash="?"
   local script_lines="?"
   if [[ -f "$script_install_path" ]]; then
-    script_hash=$(hash <"$script_install_path" 8)
-    script_lines=$(awk <"$script_install_path" 'END {print NR}')
+    script_hash=$(hash < "$script_install_path" 8)
+    script_lines=$(awk < "$script_install_path" 'END {print NR}')
   fi
 
   # get shell/operating system/versions
@@ -861,35 +861,35 @@ lookup_script_data() {
   os_name="?"
   install_package=""
   case "$os_kernel" in
-  CYGWIN* | MSYS* | MINGW*)
-    os_name="Windows"
-    ;;
-  Darwin)
-    os_name=$(sw_vers -productName)       # macOS
-    os_version=$(sw_vers -productVersion) # 11.1
-    install_package="brew install"
-    ;;
-  Linux | GNU*)
-    if [[ $(command -v lsb_release) ]]; then
-      # 'normal' Linux distributions
-      os_name=$(lsb_release -i | awk -F: '{$1=""; gsub(/^[\s\t]+/,"",$2); gsub(/[\s\t]+$/,"",$2); print $2}')    # Ubuntu/Raspbian
-      os_version=$(lsb_release -r | awk -F: '{$1=""; gsub(/^[\s\t]+/,"",$2); gsub(/[\s\t]+$/,"",$2); print $2}') # 20.04
-    else
-      # Synology, QNAP,
-      os_name="Linux"
-    fi
-    [[ -x /bin/apt-cyg ]] && install_package="apt-cyg install"     # Cygwin
-    [[ -x /bin/dpkg ]] && install_package="dpkg -i"                # Synology
-    [[ -x /opt/bin/ipkg ]] && install_package="ipkg install"       # Synology
-    [[ -x /usr/sbin/pkg ]] && install_package="pkg install"        # BSD
-    [[ -x /usr/bin/pacman ]] && install_package="pacman -S"        # Arch Linux
-    [[ -x /usr/bin/zypper ]] && install_package="zypper install"   # Suse Linux
-    [[ -x /usr/bin/emerge ]] && install_package="emerge"           # Gentoo
-    [[ -x /usr/bin/yum ]] && install_package="yum install"         # RedHat RHEL/CentOS/Fedora
-    [[ -x /usr/bin/apk ]] && install_package="apk add"             # Alpine
-    [[ -x /usr/bin/apt-get ]] && install_package="apt-get install" # Debian
-    [[ -x /usr/bin/apt ]] && install_package="apt install"         # Ubuntu
-    ;;
+    CYGWIN* | MSYS* | MINGW*)
+      os_name="Windows"
+      ;;
+    Darwin)
+      os_name=$(sw_vers -productName)       # macOS
+      os_version=$(sw_vers -productVersion) # 11.1
+      install_package="brew install"
+      ;;
+    Linux | GNU*)
+      if [[ $(command -v lsb_release) ]]; then
+        # 'normal' Linux distributions
+        os_name=$(lsb_release -i | awk -F: '{$1=""; gsub(/^[\s\t]+/,"",$2); gsub(/[\s\t]+$/,"",$2); print $2}')    # Ubuntu/Raspbian
+        os_version=$(lsb_release -r | awk -F: '{$1=""; gsub(/^[\s\t]+/,"",$2); gsub(/[\s\t]+$/,"",$2); print $2}') # 20.04
+      else
+        # Synology, QNAP,
+        os_name="Linux"
+      fi
+      [[ -x /bin/apt-cyg ]] && install_package="apt-cyg install"     # Cygwin
+      [[ -x /bin/dpkg ]] && install_package="dpkg -i"                # Synology
+      [[ -x /opt/bin/ipkg ]] && install_package="ipkg install"       # Synology
+      [[ -x /usr/sbin/pkg ]] && install_package="pkg install"        # BSD
+      [[ -x /usr/bin/pacman ]] && install_package="pacman -S"        # Arch Linux
+      [[ -x /usr/bin/zypper ]] && install_package="zypper install"   # Suse Linux
+      [[ -x /usr/bin/emerge ]] && install_package="emerge"           # Gentoo
+      [[ -x /usr/bin/yum ]] && install_package="yum install"         # RedHat RHEL/CentOS/Fedora
+      [[ -x /usr/bin/apk ]] && install_package="apk add"             # Alpine
+      [[ -x /usr/bin/apt-get ]] && install_package="apt-get install" # Debian
+      [[ -x /usr/bin/apt ]] && install_package="apt install"         # Ubuntu
+      ;;
 
   esac
   debug "$info_icon System OS  : $os_name ($os_kernel) $os_version on $os_machine"
@@ -897,8 +897,8 @@ lookup_script_data() {
 
   # get last modified date of this script
   script_modified="??"
-  [[ "$os_kernel" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2>/dev/null | cut -c1-16) # generic linux
-  [[ "$os_kernel" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2>/dev/null)          # for MacOS
+  [[ "$os_kernel" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2> /dev/null | cut -c1-16) # generic linux
+  [[ "$os_kernel" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2> /dev/null)          # for MacOS
 
   debug "$info_icon Last modif : $script_modified"
   debug "$info_icon Script ID  : $script_lines lines / md5: $script_hash"
@@ -906,7 +906,7 @@ lookup_script_data() {
   debug "$info_icon Running as : $USER@$HOSTNAME"
 
   # if run inside a git repo, detect for which remote repo it is
-  if git status &>/dev/null; then
+  if git status &> /dev/null; then
     git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
     debug "$info_icon git remote : $git_repo_remote"
     git_repo_root=$(git rev-parse --show-toplevel)
@@ -919,7 +919,7 @@ lookup_script_data() {
   # get script version from VERSION.md file - which is automatically updated by pforret/setver
   [[ -f "$script_install_folder/VERSION.md" ]] && script_version=$(cat "$script_install_folder/VERSION.md")
   # get script version from git tag file - which is automatically updated by pforret/setver
-  [[ -n "$git_repo_root" ]] && [[ -n "$(git tag &>/dev/null)" ]] && script_version=$(git tag --sort=version:refname | tail -1)
+  [[ -n "$git_repo_root" ]] && [[ -n "$(git tag &> /dev/null)" ]] && script_version=$(git tag --sort=version:refname | tail -1)
 }
 
 prep_log_and_temp_dir() {

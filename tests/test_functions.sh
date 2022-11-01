@@ -10,9 +10,9 @@
 #  assert_not_equals "a string" "a string" "a string should be different from another string"
 #  fake ps echo hello world
 
-setup_suite(){
+setup_suite() {
   # shellcheck disable=SC1091
-  if [[ -f "../template/script.sh" ]] ; then
+  if [[ -f "../template/script.sh" ]]; then
     source "../template/script.sh"
     echo "# load bashew as library script"
   else
@@ -45,12 +45,12 @@ test_upper() {
   assert_equals "ÉTÉ DE GARÇON" "$(Str:upper "Été de Garçon")"
 }
 
-test_title(){
+test_title() {
   assert_equals "JamesBondJr" "$(Str:title "James Bond Jr.")"
   assert_equals "It_Was_Just_A_Question" "$(Str:title "It was just a question?!" "_")"
 }
 
-test_slugify(){
+test_slugify() {
   assert_equals "james-bond-jr" "$(Str:slugify "James Bond Jr.")"
   assert_equals "il_etait_une_fois" "$(Str:slugify "Il était une fois ..." "_")"
   assert_equals "but-is-it-jack-or-jill" "$(Str:slugify "but... is it Jack, or Jill???")"

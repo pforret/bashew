@@ -19,9 +19,9 @@ setup_suite() {
   cp -r "$root_folder"/* "$temp_folder/"
 
   cd "$temp_folder" || exit
-  git init &>/dev/null
-  git add . &>/dev/null
-  git commit -m "First commit" &>/dev/null
+  git init &> /dev/null
+  git add . &> /dev/null
+  git commit -m "First commit" &> /dev/null
   ./bashew -q -n "$rnd_name" -f init
 }
 
@@ -39,4 +39,3 @@ test_3_script_executes() {
   assert "./$rnd_name"
   rm -fr "$temp_folder"
 }
-
