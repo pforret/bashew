@@ -16,7 +16,7 @@ setup_suite() {
     source "../template/script.sh"
     echo "# load bashew as library script"
   else
-    echo "script ["../template/script.sh"] could not be found"
+    echo "script [../template/script.sh] could not be found"
     exit 1
   fi
 

@@ -8,11 +8,11 @@
 
 ### Created by author_name ( author_username ) on meta_today
 ### Based on https://github.com/pforret/bashew bashew_version
-script_version="0.0.1" # if there is a VERSION.md in this script's folder, it will take priority for version number
+script_version="0.0.1" # if there is a VERSION.md in this script's folder, that will have priority over this version number
 readonly script_author="author@email.com"
 readonly script_created="meta_today"
 readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUST run as root / -1 = script MAY NOT run as root
-
+readonly script_description="package_description"
 ## some initialisation
 action=""
 script_prefix=""
@@ -145,6 +145,7 @@ quiet=0
 
 ### stdIO:print/stderr output
 function IO:initialize() {
+  script_started_at=$(Tool:time)
   [[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && sourced=1 || sourced=0
   [[ -t 1 ]] && piped=0 || piped=1 # detect if output is piped
   if [[ $piped -eq 0 ]]; then
@@ -270,15 +271,54 @@ function Tool:calc() {
   awk "BEGIN {print $*} ; "
 }
 
+function Tool:round() {
+  number=${1}
+  decimals=${2:-0}
+
+  awk "BEGIN {print sprintf( \"%.${decimals}f\" , $number )};"
+}
+
 function Tool:time() {
   if [[ $(command -v perl) ]]; then
-    perl -MTime::HiRes=time -e 'printf "%.3f\n", time'
+    perl -MTime::HiRes=time -e 'printf "%f\n", time'
   elif [[ $(command -v php) ]]; then
-    php -r 'echo microtime(true) . "\n"; '
+    php -r 'printf("%f\n",microtime(true));'
   elif [[ $(command -v python) ]]; then
-    python -c "import time; print(time.time()) "
+    python -c 'import time; print(time.time()) '
+  elif [[ $(command -v python3) ]]; then
+    python3 -c 'import time; print(time.time()) '
+  elif [[ $(command -v node) ]]; then
+    node -e 'console.log(+new Date() / 1000)'
+  elif [[ $(command -v ruby) ]] ; then
+    ruby -e 'STDOUT.puts(Time.now.to_f)'
   else
-    date "+%s" | awk '{printf("%.3f\n",$1)}'
+    date '+%s.000'
+  fi
+}
+
+function Tool:throughput() {
+  local time_started="$1"
+  local operations=${2:-1}
+  local name=${3:-operation}
+
+  local time_finished=$(Tool:time)
+  duration=$(Tool:calc "$time_finished - $time_started")
+  seconds=$(Tool:round $duration)
+  if [[ "$operations" -gt 1 ]] ; then
+    if [[ $operations -gt $seconds ]] ; then
+      ops=$(Tool:calc "$operations / $duration" )
+      ops=$(Tool:round "$ops" 3)
+      duration=$(Tool:round "$duration" 2)
+      IO:print "$operations $name finished in $duration secs: $ops $name/sec"
+    else
+      ops=$(Tool:calc "$duration / $operations" )
+      ops=$(Tool:round "$ops" 3)
+      duration=$(Tool:round "$duration" 2)
+      IO:print "$operations $name finished in $duration secs: $ops sec/$name"
+    fi
+  else
+    duration=$(Tool:round "$duration" 2)
+    IO:print "$name finished in $duration secs"
   fi
 }
 
@@ -528,8 +568,8 @@ Script:check() {
 Option:usage() {
   IO:print "Program : ${txtInfo}$script_basename${txtReset}  by ${txtWarn}$script_author${txtReset}"
   IO:print "Version : ${txtInfo}v$script_version${txtReset} (${txtWarn}$script_modified${txtReset})"
-  IO:print "Purpose : ${txtInfo}package_description${txtReset}"
-  echo -n "Usage   : $script_basename"
+  IO:print "Purpose : ${txtInfo}$script_description${txtReset}"
+  echo -n  "Usage   : $script_basename"
   Option:config |
     awk '
   BEGIN { FS="|"; OFS=" "; oneline="" ; fulltext="Flags, options and parameters:"}
@@ -901,7 +941,7 @@ function Script:meta() {
   [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
   IO:debug "$info_icon Shell type : $shell_brand - version $shell_version"
   if [[ "$shell_brand" == "bash" && "${BASH_VERSINFO:-0}" -lt 4 ]]; then
-    IO:die "Bash version 4 or higher is required - current version = $BASH_VERSINFO"
+    IO:die "Bash version 4 or higher is required - current version = ${BASH_VERSINFO:-0}"
   fi
 
   os_kernel=$(uname -s)
@@ -976,6 +1016,7 @@ function Script:initialize() {
     Os:folder "$tmp_dir" 1
   fi
   if [[ -n "${log_dir:-}" ]]; then
+    # clean up LOG folder after 1 month
     Os:folder "$log_dir" 30
     log_file="$log_dir/$script_prefix.$execution_day.log"
     IO:debug "$config_icon log_file: $log_file"
