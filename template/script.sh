@@ -100,7 +100,7 @@ Script:main() {
   esac
   IO:log "[$script_basename] ended after $SECONDS secs"
   #TIP: >>> bash script created with «pforret/bashew»
-  #TIP: >>> for bash development, also check IO:print «pforret/setver» and «pforret/progressbar»
+  #TIP: >>> for bash development, also check out «pforret/setver» and «pforret/progressbar»
 }
 
 #####################################################################
