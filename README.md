@@ -1,15 +1,13 @@
+[![Shellcheck CI](https://github.com/pforret/bashew/actions/workflows/shellcheck.yml/badge.svg)](https://github.com/pforret/bashew/actions/workflows/shellcheck.yml)
+[![bash_unit CI](https://github.com/pforret/bashew/actions/workflows/bash_unit.yml/badge.svg)](https://github.com/pforret/bashew/actions/workflows/bash_unit.yml)
+[![version](https://img.shields.io/github/v/tag/pforret/bashew)](https://github.com/pforret/bashew/tags)
+[![version](https://img.shields.io/github/v/release/pforret/bashew)](https://github.com/pforret/bashew/releases)
+
 Part of [![part of Bashful Scripting network](https://img.shields.io/badge/bashful-scripting-orange)](https://blog.forret.com/portfolio/bashful/) network
 /
 Install with [![basher install](https://img.shields.io/badge/basher-install-white?logo=gnu-bash&style=flat)](https://www.basher.it/package/)
 
-Latest tag: [![version](https://img.shields.io/github/v/tag/pforret/bashew)](https://github.com/pforret/bashew/tags)
-/
-latest release: [![version](https://img.shields.io/github/v/release/pforret/bashew)](https://github.com/pforret/bashew/releases)
-/
-![Bash CI](https://github.com/pforret/bashew/workflows/Bash%20CI/badge.svg)
-![Shellcheck CI](https://github.com/pforret/bashew/workflows/Shellcheck%20CI/badge.svg)
-
-# bashew
+# bashew.sh
 
 ![Bashew Logo](assets/bashew.jpg)
 
