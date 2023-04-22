@@ -11,7 +11,7 @@ flag|h|help|show usage
 flag|q|quiet|no output
 flag|v|verbose|output more
 flag|f|force|do not ask for confirmation (always yes)
-option|l|log_dir|folder for debug files |$HOME/log/$script_prefix
+option|l|log_dir|folder for IO:debug files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 option|n|name|name of new script or project
 param|1|action|action to perform: script/project/init/update
@@ -60,7 +60,7 @@ get_author_data() {
     clean_name=$(basename "$new_name" .sh)
     new_description="This is my script $clean_name"
   else
-    announce "1. first we need the information of the author"
+    IO:announce "1. first we need the information of the author"
     author_fullname=$(ask "Author full name        " "$guess_fullname")
     author_email=$(ask "Author email            " "$guess_email")
     author_username=$(ask "Author (github) username" "$guess_username")
@@ -68,10 +68,10 @@ get_author_data() {
     export BASHEW_AUTHOR_EMAIL="$author_email"
     export BASHEW_AUTHOR_USERNAME="$author_username"
 
-    announce "2. now we need the path and name of this new script/repo"
+    IO:announce "2. now we need the path and name of this new script/repo"
     new_name=$(ask "Script name" "$1")
 
-    announce "3. give some description of what the script should do"
+    IO:announce "3. give some description of what the script should do"
     clean_name=$(basename "$new_name" .sh)
     new_description=$(ask "Script description" "This is my script $clean_name")
   fi
@@ -130,19 +130,19 @@ random_word() {
 
 delete_stuff() {
   if [[ -d "$1" ]]; then
-    debug "Delete folder [$1]"
+    IO:debug "Delete folder [$1]"
     rm -fr "$1"
   fi
   if [[ -f "$1" ]]; then
-    debug "Delete file [$1]"
+    IO:debug "Delete file [$1]"
     rm "$1"
   fi
 }
 
 main() {
-  debug "Program: $script_basename $script_version"
-  debug "Updated: $script_modified"
-  debug "Run as : $USER@$HOSTNAME"
+  IO:debug "Program: $script_basename $script_version"
+  IO:debug "Updated: $script_modified"
+  IO:debug "Run as : $USER@$HOSTNAME"
   # add programs you need in your script here, like tar, wget, ffmpeg, rsync ...
   require_binary tput
   require_binary uname
@@ -150,18 +150,18 @@ main() {
   local model="script"
 
   # shellcheck disable=SC2154
-  action=$(lower_case "$action")
-  case $action in
+  case "${action,,}" in
     script | new)
       if [[ -n "${name:-}" ]] && [[ ! "$name" == " " ]]; then
-        debug "Using [$name] as name"
+        IO:debug "Using [$name] as name"
         get_author_data "$name"
       else
+        local random_name
         random_name="$(random_word)_$(random_word).sh"
-        debug "Using [$random_name] as name"
+        IO:debug "Using [$random_name] as name"
         get_author_data "./$random_name"
       fi
-      announce "Creating script $new_name ..."
+      IO:announce "Creating script $new_name ..."
       # shellcheck disable=SC2154
       copy_and_replace "$script_install_folder/template/$model.sh" "$new_name"
       chmod +x "$new_name"
@@ -176,7 +176,7 @@ main() {
         get_author_data "./$random_name"
       fi
       if [[ ! -d "$new_name" ]]; then
-        announce "Creating project $new_name ..."
+        IO:announce "Creating project $new_name ..."
         mkdir "$new_name"
         template_folder="$script_install_folder/template"
         ## first do all files that can change
@@ -203,21 +203,21 @@ main() {
         if confirm "Do you want to 'git init' the new project?"; then
           (pushd "$new_name" && git init && git add . && popd || return) > /dev/null 2>&1
         fi
-        success "next step: 'cd $new_name' and start scripting!"
+        IO:success "next step: 'cd $new_name' and start scripting!"
       else
-        alert "Folder [$new_name] already exists, cannot make a new project there"
+        IO:alert "Folder [$new_name] already exists, cannot make a new project there"
       fi
       ;;
 
     init)
       repo_name=$(basename "$script_install_folder")
-      [[ "$repo_name" == "bashew" ]] && die "You can only run the '$script_basename init' of a *new* repo, derived from the bashew template on Github."
-      [[ ! -d ".git" ]] && die "You can only run '$script_basename init' in the root of your repo"
-      [[ ! -d "template" ]] && die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from pforret/bashew?"
-      [[ ! -f "$script_install_folder/template/$model.sh" ]] && die "$model.sh is not a valid template"
+      [[ "$repo_name" == "bashew" ]] && IO:die "You can only run the '$script_basename init' of a *new* repo, derived from the bashew template on Github."
+      [[ ! -d ".git" ]] && IO:die "You can only run '$script_basename init' in the root of your repo"
+      [[ ! -d "template" ]] && IO:die "The 'template' folder seems to be missing, are you sure this repo is freshly cloned from pforret/bashew?"
+      [[ ! -f "$script_install_folder/template/$model.sh" ]] && IO:die "$model.sh is not a valid template"
       new_name="$repo_name.sh"
       get_author_data "./$new_name"
-      announce "Creating script $new_name ..."
+      IO:announce "Creating script $new_name ..."
       # shellcheck disable=SC2154
       for file in template/*.md template/LICENSE template/.gitignore template/.gitignore; do
         bfile=$(basename "$file")
@@ -237,7 +237,7 @@ main() {
         ln -s "$new_name" "$alt_name"
         git add "$alt_name"
       fi
-      announce "Now cleaning up unnecessary bashew files ..."
+      IO:announce "Now cleaning up unnecessary bashew files ..."
       delete_stuff template
       delete_stuff tests/disabled
       delete_stuff tests/test_bashew.sh
@@ -247,19 +247,19 @@ main() {
       delete_stuff .tmp
       delete_stuff log
       delete_stuff doc
-      debug "Delete script [bashew.sh] ..."
+      IO:debug "Delete script [bashew.sh] ..."
       (
         sleep 1
         rm -f bashew.sh bashew
       ) & # delete will happen after the script is finished
-      success "script $new_name created!"
-      success "now do: ${col_ylw}git commit -a -m 'after bashew init' && git push${col_reset}"
-      out "tip: install ${col_ylw}basher${col_reset} and ${col_ylw}pforret/setver${col_reset} for easy bash script version management"
+      IO:success "script $new_name created!"
+      IO:success "now do: ${col_ylw}git commit -a -m 'after bashew init' && git push${col_reset}"
+      IO:print "tip: install ${col_ylw}basher${col_reset} and ${col_ylw}pforret/setver${col_reset} for easy bash script version management"
       ;;
 
     update)
-      pushd "$script_install_folder" || die "No access to folder [$script_install_folder]"
-      git pull || die "Cannot update with git"
+      pushd "$script_install_folder" || IO:die "No access to folder [$script_install_folder]"
+      git pull || IO:die "Cannot update with git"
       # shellcheck disable=SC2164
       popd
       ;;
@@ -273,33 +273,33 @@ main() {
       check_script_settings
       ;;
 
-    \
-      debug)
-      out "print_with_out=yes"
-      debug "print_with_log=yes"
-      announce "print_with_announce=yes"
-      success "print_with_success=yes"
-      progress "print_with_progress=yes"
+    debug)
+      IO:print "print_with_out=yes"
+      IO:debug "print_with_log=yes"
+      IO:announce "print_with_IO:announce=yes"
+      IO:success "print_with_success=yes"
+      IO:progress "print_with_progress=yes"
       echo ""
-      alert "print_with_alert=yes"
+      IO:alert "print_with_alert=yes"
 
+      local hash3 hash6
       hash3=$(echo "1234567890" | hash 3)
       hash6=$(echo "1234567890" | hash)
-      out "hash3=$hash3"
-      out "hash6=$hash6"
-      out "script_basename=$script_basename"
-      out "script_author=$script_author"
-      out "escape1 = $(escape "/forward/slash")"
-      out "escape2 = $(escape '\backward\slash')"
-      out "lowercase = $(lower_case 'AbCdEfGhIjKlMnÔû')"
-      out "uppercase = $(upper_case 'AbCdEfGhIjKlMnÔû')"
-      out "slugify   = $(slugify 'AbCdEfGhIjKlMnÔû')"
+      IO:print "hash3=$hash3"
+      IO:print "hash6=$hash6"
+      IO:print "script_basename=$script_basename"
+      IO:print "script_author=$script_author"
+      IO:print "escape1 = $(escape "/forward/slash")"
+      IO:print "escape2 = $(escape '\backward\slash')"
+      IO:print "lowercase = $(lower_case 'AbCdEfGhIjKlMnÔû')"
+      IO:print "uppercase = $(upper_case 'AbCdEfGhIjKlMnÔû')"
+      IO:print "slugify   = $(slugify 'AbCdEfGhIjKlMnÔû')"
       # shellcheck disable=SC2015
-      is_set "$force" && out "force=$force (true)" || out "force=$force (false)"
+      is_set "$force" && IO:print "force=$force (true)" || IO:print "force=$force (false)"
       ;;
 
     *)
-      die "param [$action] not recognized"
+      IO:die "param [$action] not recognized"
       ;;
   esac
 }
@@ -371,28 +371,24 @@ initialise_output() {
   error_prefix="${col_red}>${col_reset}"
 }
 
-out() { ((quiet)) && true || printf '%b\n' "$*"; }
-debug() { if ((verbose)); then out "${col_ylw}# $* ${col_reset}" >&2; else true; fi; }
-die() {
-  out "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2
-  tput bel
-  safe_exit
-}
-alert() { out "${col_red}${char_alrt}${col_reset}: $*" >&2; }
-success() { out "${col_grn}${char_succ}${col_reset}  $*"; }
-announce() {
-  out "${col_grn}${char_wait}${col_reset}  $*"
+IO:print() { ((quiet)) && true || printf '%b\n' "$*"; }
+IO:debug() { ((verbose)) && IO:print "${col_ylw}# $* ${col_reset}" >&2; return 0;}
+IO:die() { IO:print "${col_red}${char_fail} $script_basename${col_reset}: $*" >&2 && tput bel && safe_exit; }
+IO:alert() { IO:print "${col_red}${char_alrt}${col_reset}: $*" >&2; }
+IO:success() { IO:print "${col_grn}${char_succ}${col_reset}  $*"; }
+IO:announce() {
+  IO:print "${col_grn}${char_wait}${col_reset}  $*"
   sleep 1
 }
-progress() {
+IO:progress() {
   ((quiet)) || (
     local screen_width
     screen_width=$(tput cols 2> /dev/null || echo 80)
     local rest_of_line
     rest_of_line=$((screen_width - 5))
 
-    if flag_set ${piped:-0}; then
-      out "$*" >&2
+    if ((piped)); then
+      IO:print "$*" >&2
     else
       printf "... %-${rest_of_line}b\r" "$*                                             " >&2
     fi
@@ -469,7 +465,7 @@ ask() {
   [[ -n "$ANSWER" ]] && echo "$ANSWER" || echo "${2:-}"
 }
 
-trap "die \"ERROR \$? after \$SECONDS seconds \n\
+trap "IO:die \"ERROR \$? after \$SECONDS seconds \n\
 \${error_prefix} last command : '\$BASH_COMMAND' \" \
 \$(< \$script_install_path awk -v lineno=\$LINENO \
 'NR == lineno {print \"\${error_prefix} from line \" lineno \" : \" \$0}')" INT TERM EXIT
@@ -478,16 +474,16 @@ trap "die \"ERROR \$? after \$SECONDS seconds \n\
 safe_exit() {
   [[ -n "${tmp_file:-}" ]] && [[ -f "$tmp_file" ]] && rm "$tmp_file"
   trap - INT TERM EXIT
-  debug "$script_basename finished after $SECONDS seconds"
+  IO:debug "$script_basename finished after $SECONDS seconds"
   exit 0
 }
 
 flag_set() { [[ "$1" -gt 0 ]]; }
 
 show_usage() {
-  out "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
-  out "Updated: ${col_grn}$script_modified${col_reset}"
-  out "Description: package_description"
+  IO:print "Program: ${col_grn}$script_basename $script_version${col_reset} by ${col_ylw}$script_author${col_reset}"
+  IO:print "Updated: ${col_grn}$script_modified${col_reset}"
+  IO:print "Description: package_description"
   echo -n "Usage: $script_basename"
   list_options |
     awk '
@@ -535,10 +531,10 @@ check_last_version() {
     if [[ -d .git ]]; then
       local remote
       remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
-      progress "Check for latest version - $remote"
+      IO:progress "Check for latest version - $remote"
       git remote update &> /dev/null
       if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2> /dev/null) -gt 0 ]]; then
-        out "There is a more recent update of this script - run <<$script_prefix update>> to update"
+        IO:print "There is a more recent update of this script - run <<$script_prefix update>> to update"
       fi
     fi
     # shellcheck disable=SC2164
@@ -579,7 +575,7 @@ show_tips() {
 check_script_settings() {
   if [[ -n $(filter_option_type flag) ]]; then
     local name
-    out "## ${col_grn}boolean flags${col_reset}:"
+    IO:print "## ${col_grn}boolean flags${col_reset}:"
     filter_option_type flag |
       while read -r name; do
         if ((piped)); then
@@ -588,12 +584,12 @@ check_script_settings() {
           eval "echo -n \"$name=\$${name:-}  \""
         fi
       done
-    out " "
-    out " "
+    IO:print " "
+    IO:print " "
   fi
 
   if [[ -n $(filter_option_type option) ]]; then
-    out "## ${col_grn}option defaults${col_reset}:"
+    IO:print "## ${col_grn}option defaults${col_reset}:"
     filter_option_type option |
       while read -r name; do
         if ((piped)); then
@@ -602,12 +598,12 @@ check_script_settings() {
           eval "echo -n \"$name=\$${name:-}  \""
         fi
       done
-    out " "
-    out " "
+    IO:print " "
+    IO:print " "
   fi
 
   if [[ -n $(filter_option_type list) ]]; then
-    out "## ${col_grn}list options${col_reset}:"
+    IO:print "## ${col_grn}list options${col_reset}:"
     filter_option_type list |
       while read -r name; do
         if ((piped)); then
@@ -616,15 +612,15 @@ check_script_settings() {
           eval "echo -n \"$name=(\${${name}[@]})  \""
         fi
       done
-    out " "
-    out " "
+    IO:print " "
+    IO:print " "
   fi
 
   if [[ -n $(filter_option_type param) ]]; then
     if ((piped)); then
-      debug "Skip parameters for .env files"
+      IO:debug "Skip parameters for .env files"
     else
-      out "## ${col_grn}parameters${col_reset}:"
+      IO:print "## ${col_grn}parameters${col_reset}:"
       filter_option_type param |
         while read -r name; do
           # shellcheck disable=SC2015
@@ -696,13 +692,13 @@ parse_options() {
       if echo "$save_option" | grep shift >> /dev/null; then
         local save_var
         save_var=$(echo "$save_option" | cut -d= -f1)
-        debug "$config_icon parameter: ${save_var}=$2"
+        IO:debug "$config_icon parameter: ${save_var}=$2"
       else
-        debug "$config_icon flag: $save_option"
+        IO:debug "$config_icon flag: $save_option"
       fi
       eval "$save_option"
     else
-      die "cannot interpret option [$1]"
+      IO:die "cannot interpret option [$1]"
     fi
     shift
   done
@@ -710,7 +706,7 @@ parse_options() {
   ((help)) && (
     show_usage
     check_last_version
-    out "                                  "
+    IO:print "                                                                                 "
     echo "### TIPS & EXAMPLES"
     show_tips
 
@@ -721,18 +717,18 @@ parse_options() {
     single_params=$(list_options | grep 'param|1|' | cut -d'|' -f3)
     list_singles=$(echo "$single_params" | xargs)
     single_count=$(echo "$single_params" | count_words)
-    debug "$config_icon Expect : $single_count single parameter(s): $list_singles"
-    [[ $# -eq 0 ]] && die "need the parameter(s) [$list_singles]"
+    IO:debug "$config_icon Expect : $single_count single parameter(s): $list_singles"
+    [[ $# -eq 0 ]] && IO:die "need the parameter(s) [$list_singles]"
 
     for param in $single_params; do
-      [[ $# -eq 0 ]] && die "need parameter [$param]"
-      [[ -z "$1" ]] && die "need parameter [$param]"
-      debug "$config_icon Assign : $param=$1"
+      [[ $# -eq 0 ]] && IO:die "need parameter [$param]"
+      [[ -z "$1" ]] && IO:die "need parameter [$param]"
+      IO:debug "$config_icon Assign : $param=$1"
       eval "$param=\"$1\""
       shift
     done
   else
-    debug "$config_icon No single params to process"
+    IO:debug "$config_icon No single params to process"
     single_params=""
     single_count=0
   fi
@@ -740,53 +736,55 @@ parse_options() {
   if expects_optional_params; then
     optional_params=$(list_options | grep 'param|?|' | cut -d'|' -f3)
     optional_count=$(echo "$optional_params" | count_words)
-    debug "$config_icon Expect : $optional_count optional parameter(s): $(echo "$optional_params" | xargs)"
+    IO:debug "$config_icon Expect : $optional_count optional parameter(s): $(echo "$optional_params" | xargs)"
 
     for param in $optional_params; do
-      debug "$config_icon Assign : $param=${1:-}"
+      IO:debug "$config_icon Assign : $param=${1:-}"
       eval "$param=\"${1:-}\""
       shift
     done
   else
-    debug "$config_icon No optional params to process"
+    IO:debug "$config_icon No optional params to process"
     optional_params=""
     optional_count=0
   fi
 
   if expects_multi_param; then
-    #debug "Process: multi param"
+    #IO:debug "Process: multi param"
     multi_count=$(list_options | grep -c 'param|n|')
     multi_param=$(list_options | grep 'param|n|' | cut -d'|' -f3)
-    debug "$config_icon Expect : $multi_count multi parameter: $multi_param"
-    ((multi_count > 1)) && die "cannot have >1 'multi' parameter: [$multi_param]"
-    ((multi_count > 0)) && [[ $# -eq 0 ]] && die "need the (multi) parameter [$multi_param]"
+    IO:debug "$config_icon Expect : $multi_count multi parameter: $multi_param"
+    ((multi_count > 1)) && IO:die "cannot have >1 'multi' parameter: [$multi_param]"
+    ((multi_count > 0)) && [[ $# -eq 0 ]] && IO:die "need the (multi) parameter [$multi_param]"
     # save the rest of the params in the multi param
     if [[ -n "$*" ]]; then
-      debug "$config_icon Assign : $multi_param=$*"
+      IO:debug "$config_icon Assign : $multi_param=$*"
       eval "$multi_param=( $* )"
     fi
   else
     multi_count=0
     multi_param=""
-    [[ $# -gt 0 ]] && die "cannot interpret extra parameters"
+    [[ $# -gt 0 ]] && IO:die "cannot interpret extra parameters"
   fi
 }
 
 require_binary() {
-  binary="$1"
-  path_binary=$(command -v "$binary" 2> /dev/null)
-  [[ -n "$path_binary" ]] && debug "️$require_icon required [$binary] -> $path_binary" && return 0
+  local binary="$1"
+  local install_instructions
+  local path_binary words
+  path_binary=$(command -v "$binary")
+  [[ -n "$path_binary" ]] && IO:debug "️$require_icon required [$binary] -> $path_binary" && return 0
   #
-  words=$(echo "${2:-}" | wc -l)
+  words=$(echo "${2:-}" | wc -w | xargs )
   case $words in
     0) install_instructions="$install_package $1" ;;
     1) install_instructions="$install_package $2" ;;
     *) install_instructions="$2" ;;
   esac
-  alert "$script_basename needs [$binary] but it cannot be found"
-  alert "1) install package  : $install_instructions"
-  alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
-  die "Missing program/script [$binary]"
+  IO:alert "$script_basename needs [$binary] but it cannot be found"
+  IO:alert "1) install package  : $install_instructions"
+  IO:alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
+  IO:die "Missing program/script [$binary]"
 }
 
 folder_prep() {
@@ -794,10 +792,10 @@ folder_prep() {
     local folder="$1"
     local max_days=${2:-365}
     if [[ ! -d "$folder" ]]; then
-      debug "$clean_icon Create folder : [$folder]"
+      IO:debug "$clean_icon Create folder : [$folder]"
       mkdir -p "$folder"
     else
-      debug "$clean_icon Cleanup folder: [$folder] - delete files older than $max_days day(s)"
+      IO:debug "$clean_icon Cleanup folder: [$folder] - delete files older than $max_days day(s)"
       find "$folder" -mtime "+$max_days" -type f -exec rm {} \;
     fi
   fi
@@ -819,7 +817,7 @@ recursive_readlink() {
   link_name=$(basename "$symlink")
   [[ -z "$link_folder" ]] && link_folder="$file_folder"
   [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &> /dev/null && pwd)"
-  debug "$info_icon Symbolic ln: $1 -> [$symlink]"
+  IO:debug "$info_icon Symbolic ln: $1 -> [$symlink]"
   recursive_readlink "$link_folder/$link_name"
 }
 
@@ -830,11 +828,11 @@ lookup_script_data() {
   execution_year=$(date "+%Y")
 
   script_install_path="${BASH_SOURCE[0]}"
-  debug "$info_icon Script path: $script_install_path"
+  IO:debug "$info_icon Script path: $script_install_path"
   script_install_path=$(recursive_readlink "$script_install_path")
-  debug "$info_icon Linked path: $script_install_path"
+  IO:debug "$info_icon Linked path: $script_install_path"
   script_install_folder="$(cd -P "$(dirname "$script_install_path")" && pwd)"
-  debug "$info_icon In folder  : $script_install_folder"
+  IO:debug "$info_icon In folder  : $script_install_folder"
   local script_hash="?"
   local script_lines="?"
   if [[ -f "$script_install_path" ]]; then
@@ -849,7 +847,7 @@ lookup_script_data() {
   [[ -n "${BASH_VERSION:-}" ]] && shell_brand="bash" && shell_version="$BASH_VERSION"
   [[ -n "${FISH_VERSION:-}" ]] && shell_brand="fish" && shell_version="$FISH_VERSION"
   [[ -n "${KSH_VERSION:-}" ]] && shell_brand="ksh" && shell_version="$KSH_VERSION"
-  debug "$info_icon Shell type : $shell_brand - version $shell_version"
+  IO:debug "$info_icon Shell type : $shell_brand - version $shell_version"
 
   local os_kernel
   local os_version
@@ -892,25 +890,25 @@ lookup_script_data() {
       ;;
 
   esac
-  debug "$info_icon System OS  : $os_name ($os_kernel) $os_version on $os_machine"
-  debug "$info_icon Package mgt: $install_package"
+  IO:debug "$info_icon System OS  : $os_name ($os_kernel) $os_version on $os_machine"
+  IO:debug "$info_icon Package mgt: $install_package"
 
   # get last modified date of this script
   script_modified="??"
   [[ "$os_kernel" == "Linux" ]] && script_modified=$(stat -c %y "$script_install_path" 2> /dev/null | cut -c1-16) # generic linux
   [[ "$os_kernel" == "Darwin" ]] && script_modified=$(stat -f "%Sm" "$script_install_path" 2> /dev/null)          # for MacOS
 
-  debug "$info_icon Last modif : $script_modified"
-  debug "$info_icon Script ID  : $script_lines lines / md5: $script_hash"
-  debug "$info_icon Creation   : $script_created"
-  debug "$info_icon Running as : $USER@$HOSTNAME"
+  IO:debug "$info_icon Last modif : $script_modified"
+  IO:debug "$info_icon Script ID  : $script_lines lines / md5: $script_hash"
+  IO:debug "$info_icon Creation   : $script_created"
+  IO:debug "$info_icon Running as : $USER@$HOSTNAME"
 
   # if run inside a git repo, detect for which remote repo it is
   if git status &> /dev/null; then
     git_repo_remote=$(git remote -v | awk '/(fetch)/ {print $2}')
-    debug "$info_icon git remote : $git_repo_remote"
+    IO:debug "$info_icon git remote : $git_repo_remote"
     git_repo_root=$(git rev-parse --show-toplevel)
-    debug "$info_icon git folder : $git_repo_root"
+    IO:debug "$info_icon git folder : $git_repo_root"
   else
     readonly git_repo_root=""
     readonly git_repo_remote=""
@@ -928,14 +926,14 @@ prep_log_and_temp_dir() {
   if [[ -n "${tmp_dir:-}" ]]; then
     folder_prep "$tmp_dir" 1
     tmp_file=$(mktemp "$tmp_dir/$execution_day.XXXXXX")
-    debug "$config_icon tmp_file: $tmp_file"
+    IO:debug "$config_icon tmp_file: $tmp_file"
     # you can use this temporary file in your program
-    # it will be deleted automatically if the program ends without problems
+    # it will be deleted automatically if the program ends withIO:print problems
   fi
   if [[ -n "${log_dir:-}" ]]; then
     folder_prep "$log_dir" 30
     log_file="$log_dir/$script_prefix.$execution_day.log"
-    debug "$config_icon log_file: $log_file"
+    IO:debug "$config_icon log_file: $log_file"
   fi
 }
 
@@ -944,7 +942,7 @@ import_env_if_any() {
 
   for env_file in "${env_files[@]}"; do
     if [[ -f "$env_file" ]]; then
-      debug "$config_icon Read config from [$env_file]"
+      IO:debug "$config_icon Read config from [$env_file]"
       # shellcheck disable=SC1090
       source "$env_file"
     fi
@@ -954,15 +952,15 @@ import_env_if_any() {
 initialise_output  # output settings
 lookup_script_data # find installation folder
 
-[[ $run_as_root == 1 ]] && [[ $UID -ne 0 ]] && die "user is $USER, MUST be root to run [$script_basename]"
-[[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && die "user is $USER, CANNOT be root to run [$script_basename]"
+[[ $run_as_root == 1 ]] && [[ $UID -ne 0 ]] && IO:die "user is $USER, MUST be root to run [$script_basename]"
+[[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && IO:die "user is $USER, CANNOT be root to run [$script_basename]"
 
 init_options      # set default values for flags & options
 import_env_if_any # overwrite with .env if any
 
 if [[ $sourced -eq 0 ]]; then
   parse_options "$@"    # overwrite with specified options if any
-  prep_log_and_temp_dir # clean up debug and temp folder
+  prep_log_and_temp_dir # clean up IO:debug and temp folder
   main                  # run main program
   safe_exit             # exit and clean up
 else

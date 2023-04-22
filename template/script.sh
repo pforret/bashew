@@ -65,8 +65,7 @@ Script:main() {
 
   Os:require "awk"
 
-  action=$(Str:lower "$action")
-  case $action in
+  case "${action,,}" in
     action1)
       #TIP: use «$script_prefix action1» to ...
       #TIP:> $script_prefix action1
@@ -101,7 +100,7 @@ Script:main() {
   esac
   IO:log "[$script_basename] ended after $SECONDS secs"
   #TIP: >>> bash script created with «pforret/bashew»
-  #TIP: >>> for bash development, also check IO:print «pforret/setver» and «pforret/IO:progressbar»
+  #TIP: >>> for bash development, also check IO:print «pforret/setver» and «pforret/progressbar»
 }
 
 #####################################################################
@@ -145,7 +144,9 @@ quiet=0
 
 ### stdIO:print/stderr output
 function IO:initialize() {
-  script_started_at=$(Tool:time)
+  script_started_at="$(Tool:time)"
+  IO:debug "script $script_basename started at $script_started_at"
+
   [[ "${BASH_SOURCE[0]:-}" != "${0}" ]] && sourced=1 || sourced=0
   [[ -t 1 ]] && piped=0 || piped=1 # detect if output is piped
   if [[ $piped -eq 0 ]]; then
@@ -272,8 +273,8 @@ function Tool:calc() {
 }
 
 function Tool:round() {
-  number=${1}
-  decimals=${2:-0}
+  local number="${1}"
+  local decimals="${2:-0}"
 
   awk "BEGIN {print sprintf( \"%.${decimals}f\" , $number )};"
 }
@@ -298,12 +299,16 @@ function Tool:time() {
 
 function Tool:throughput() {
   local time_started="$1"
-  local operations=${2:-1}
-  local name=${3:-operation}
+  [[ -z "$time_started" ]] && time_started="$script_started_at"
+  local operations="${2:-1}"
+  local name="${3:-operation}"
 
-  local time_finished=$(Tool:time)
-  duration=$(Tool:calc "$time_finished - $time_started")
-  seconds=$(Tool:round $duration)
+  local time_finished
+  local duration
+  local seconds
+  time_finished="$(Tool:time)"
+  duration="$(Tool:calc "$time_finished - $time_started")"
+  seconds="$(Tool:round "$duration")"
   if [[ "$operations" -gt 1 ]] ; then
     if [[ $operations -gt $seconds ]] ; then
       ops=$(Tool:calc "$operations / $duration" )
@@ -500,7 +505,6 @@ Script:check() {
         fi
       done
     IO:print " "
-    IO:print " "
   fi
 
   if [[ -n $(Option:filter option) ]]; then
@@ -514,7 +518,6 @@ Script:check() {
         fi
       done
     IO:print " "
-    IO:print " "
   fi
 
   if [[ -n $(Option:filter list) ]]; then
@@ -527,7 +530,6 @@ Script:check() {
           eval "echo -n \"$name=(\${${name}[@]})  \""
         fi
       done
-    IO:print " "
     IO:print " "
   fi
 
@@ -816,23 +818,15 @@ function Os:require() {
   path_binary=$(command -v "$binary" 2> /dev/null)
   [[ -n "$path_binary" ]] && IO:debug "️$require_icon required [$binary] -> $path_binary" && return 0
   # $2 = how to install it
+  IO:alert "$script_basename needs [$binary] but it cannot be found"
   words=$(echo "${2:-}" | wc -w)
+  install_instructions="$install_package $1"
+  [[ $words -eq 1 ]] && install_instructions="$install_package $2"
+  [[ $words -gt 1 ]] && install_instructions="${2:-}"
   if ((force)); then
     IO:announce "Installing [$1] ..."
-    case $words in
-      0) eval "$install_package $1" ;;
-        # Os:require ffmpeg -- binary and package have the same name
-      1) eval "$install_package $2" ;;
-        # Os:require convert imagemagick -- binary and package have different names
-      *) eval "${2:-}" ;;
-        # Os:require primitive "go get -u github.com/fogleman/primitive" -- non-standard package manager
-    esac
+    eval "$install_instructions"
   else
-    install_instructions="$install_package $1"
-    [[ $words -eq 1 ]] && install_instructions="$install_package $2"
-    [[ $words -gt 1 ]] && install_instructions="${2:-}"
-
-    IO:alert "$script_basename needs [$binary] but it cannot be found"
     IO:alert "1) install package  : $install_instructions"
     IO:alert "2) check path       : export PATH=\"[path of your binary]:\$PATH\""
     IO:die "Missing program/script [$binary]"
