@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 - put requirements/dependencies in separate file
 
+## [1.20.2] - 2023-04-22
+### Added/changed
+- MOD: README.md script.sh
+- shellcheck warnings/cleanup bashew 
+
 ## [1.15.3] - 2021-04-11
 ### Added/changed
 - detect unicode in testing
