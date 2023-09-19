@@ -142,6 +142,24 @@ verbose=0
 quiet=0
 [[ $# -gt 0 ]] && [[ $1 == "-q" ]] && quiet=1
 
+txtReset=""
+txtError=""
+txtInfo=""
+txtInfo=""
+txtWarn=""
+txtBold=""
+txtItalic=""
+txtUnderline=""
+
+char_succes="OK "
+char_fail="!! "
+char_alert="?? "
+char_wait="..."
+info_icon="(i)"
+config_icon="[c]"
+clean_icon="[c]"
+require_icon="[r]"
+
 ### stdIO:print/stderr output
 function IO:initialize() {
   script_started_at="$(Tool:time)"
@@ -157,15 +175,6 @@ function IO:initialize() {
     txtBold=$(tput bold)
     txtItalic=$(tput sitm)
     txtUnderline=$(tput smul)
-  else
-    txtReset=""
-    txtError=""
-    txtInfo=""
-    txtInfo=""
-    txtWarn=""
-    txtBold=""
-    txtItalic=""
-    txtUnderline=""
   fi
 
   [[ $(echo -e '\xe2\x82\xac') == '€' ]] && unicode=1 || unicode=0 # detect if unicode is supported
@@ -178,15 +187,6 @@ function IO:initialize() {
     config_icon="🌱"
     clean_icon="🧽"
     require_icon="🔌"
-  else
-    char_succes="OK "
-    char_fail="!! "
-    char_alert="?? "
-    char_wait="..."
-    info_icon="(i)"
-    config_icon="[c]"
-    clean_icon="[c]"
-    require_icon="[r]"
   fi
   error_prefix="${txtError}>${txtReset}"
 }
