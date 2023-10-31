@@ -60,7 +60,7 @@ choice|1|action|action to perform|action1,action2,check,env,update
 ## Put your Script:main script here
 #####################################################################
 
-Script:main() {
+function Script:main() {
   IO:log "[$script_basename] $script_version started"
 
   Os:require "awk"
@@ -107,7 +107,7 @@ Script:main() {
 ## Put your helper scripts here
 #####################################################################
 
-do_action1() {
+function do_action1() {
   IO:log "action1"
   # Examples of required binaries/scripts and how to install them
   # Os:require "ffmpeg"
@@ -116,7 +116,7 @@ do_action1() {
   # (code)
 }
 
-do_action2() {
+function do_action2() {
   IO:log "action2"
   # (code)
 
@@ -848,21 +848,17 @@ function Os:folder() {
 }
 
 function Os:follow_link() {
-  [[ ! -L "$1" ]] && echo "$1" && return 0
-  local file_folder
-  local link_folder
-  local link_name
-  file_folder="$(dirname "$1")"
-  # resolve relative to absolute path
-  [[ "$file_folder" != /* ]] && link_folder="$(cd -P "$file_folder" &> /dev/null && pwd)"
-  local symlink
-  symlink=$(readlink "$1")
-  link_folder=$(dirname "$symlink")
+  [[ ! -L "$1" ]] && echo "$1" && return 0 ## if it's not a symbolic link, return immediately
+  local file_folder link_folder link_name symlink
+  file_folder="$(dirname "$1")" ## check if file has absolute/relative/no path
+  [[ "$file_folder" != /* ]] && file_folder="$(cd -P "$file_folder" &> /dev/null && pwd)" ## a relative path was given, resolve it
+  symlink=$(readlink "$1") ## follow the link
+  link_folder=$(dirname "$symlink") ## check if link has absolute/relative/no path
+  [[ -z "$link_folder" ]] && link_folder="$file_folder" ## if no link path, stay in same folder
+  [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &> /dev/null && pwd)" ## a relative link path was given, resolve it
   link_name=$(basename "$symlink")
-  [[ -z "$link_folder" ]] && link_folder="$file_folder"
-  [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &> /dev/null && pwd)"
   IO:debug "$info_icon Symbolic ln: $1 -> [$symlink]"
-  Os:follow_link "$link_folder/$link_name"
+  Os:follow_link "$link_folder/$link_name" ## recurse
 }
 
 function Os:notify() {
