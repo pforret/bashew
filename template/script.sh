@@ -857,7 +857,7 @@ function Os:follow_link() {
   [[ -z "$link_folder" ]] && link_folder="$file_folder" ## if no link path, stay in same folder
   [[ "$link_folder" == \.* ]] && link_folder="$(cd -P "$file_folder" && cd -P "$link_folder" &> /dev/null && pwd)" ## a relative link path was given, resolve it
   link_name=$(basename "$symlink")
-  IO:debug "$info_icon Symbolic ln: $1 -> [$symlink]"
+  IO:debug "$info_icon Symbolic ln: $1 -> [$link_folder/$link_name]"
   Os:follow_link "$link_folder/$link_name" ## recurse
 }
 
