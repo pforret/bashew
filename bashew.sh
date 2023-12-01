@@ -578,42 +578,24 @@ check_script_settings() {
     IO:print "## ${col_grn}boolean flags${col_reset}:"
     filter_option_type flag |
       while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=\$${name:-}\""
-        else
-          eval "echo -n \"$name=\$${name:-}  \""
-        fi
+        declare -p "$name" | cut -d' ' -f3-
       done
-    IO:print " "
-    IO:print " "
   fi
 
   if [[ -n $(filter_option_type option) ]]; then
     IO:print "## ${col_grn}option defaults${col_reset}:"
     filter_option_type option |
       while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=\$${name:-}\""
-        else
-          eval "echo -n \"$name=\$${name:-}  \""
-        fi
+        declare -p "$name" | cut -d' ' -f3-
       done
-    IO:print " "
-    IO:print " "
   fi
 
   if [[ -n $(filter_option_type list) ]]; then
     IO:print "## ${col_grn}list options${col_reset}:"
     filter_option_type list |
       while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=(\${${name}[@]})\""
-        else
-          eval "echo -n \"$name=(\${${name}[@]})  \""
-        fi
+        declare -p "$name" | cut -d' ' -f3-
       done
-    IO:print " "
-    IO:print " "
   fi
 
   if [[ -n $(filter_option_type param) ]]; then
@@ -623,10 +605,8 @@ check_script_settings() {
       IO:print "## ${col_grn}parameters${col_reset}:"
       filter_option_type param |
         while read -r name; do
-          # shellcheck disable=SC2015
-          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+          declare -p "$name" | cut -d' ' -f3-
         done
-      echo " "
     fi
   fi
 }

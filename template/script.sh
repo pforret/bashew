@@ -2,7 +2,7 @@
 ### ==============================================================================
 ### SO HOW DO YOU PROCEED WITH YOUR SCRIPT?
 ### 1. define the flags/options/parameters and defaults you need in Option:config()
-### 2. implement the different actions in Script:main() with helper functions
+### 2. implement the different actions in Script:main() directly or with helper functions do_action1
 ### 3. implement helper functions you defined in previous step
 ### ==============================================================================
 
@@ -52,7 +52,7 @@ flag|f|force|do not ask for confirmation (always yes)
 option|l|log_dir|folder for log files |$HOME/log/$script_prefix
 option|t|tmp_dir|folder for temp files|/tmp/$script_prefix
 choice|1|action|action to perform|action1,action2,check,env,update
-#param|?|input|input file/text
+param|?|input|input file/text
 " -v -e '^#' -e '^\s*$'
 }
 
@@ -498,39 +498,24 @@ Script:check() {
     IO:print "## ${txtInfo}boolean flags${txtReset}:"
     Option:filter flag |
       while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=\$${name:-}\""
-        else
-          eval "echo -n \"$name=\$${name:-}  \""
-        fi
+        declare -p "$name" | cut -d' ' -f3-
       done
-    IO:print " "
   fi
 
   if [[ -n $(Option:filter option) ]]; then
     IO:print "## ${txtInfo}option defaults${txtReset}:"
     Option:filter option |
       while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=\$${name:-}\""
-        else
-          eval "echo -n \"$name=\$${name:-}  \""
-        fi
+        declare -p "$name" | cut -d' ' -f3-
       done
-    IO:print " "
   fi
 
   if [[ -n $(Option:filter list) ]]; then
     IO:print "## ${txtInfo}list options${txtReset}:"
     Option:filter list |
       while read -r name; do
-        if ((piped)); then
-          eval "echo \"$name=(\${${name}[@]})\""
-        else
-          eval "echo -n \"$name=(\${${name}[@]})  \""
-        fi
+        declare -p "$name" | cut -d' ' -f3-
       done
-    IO:print " "
   fi
 
   if [[ -n $(Option:filter param) ]]; then
@@ -540,12 +525,9 @@ Script:check() {
       IO:print "## ${txtInfo}parameters${txtReset}:"
       Option:filter param |
         while read -r name; do
-          # shellcheck disable=SC2015
-          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+          declare -p "$name" | cut -d' ' -f3-
         done
-      echo " "
     fi
-    IO:print " "
   fi
 
   if [[ -n $(Option:filter choice) ]]; then
@@ -555,12 +537,9 @@ Script:check() {
       IO:print "## ${txtInfo}choice${txtReset}:"
       Option:filter choice |
         while read -r name; do
-          # shellcheck disable=SC2015
-          ((piped)) && eval "echo \"$name=\\\"\${$name:-}\\\"\"" || eval "echo -n \"$name=\\\"\${$name:-}\\\"  \""
+          declare -p "$name" | cut -d' ' -f3-
         done
-      echo " "
     fi
-    IO:print " "
   fi
 
   IO:print "## ${txtInfo}required commands${txtReset}:"
