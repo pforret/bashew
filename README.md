@@ -153,6 +153,35 @@ $ ln -s bashew/bashew.sh /usr/local/bin
 $ basher install pforret/bashew
 ````
 
+## 🦪 Built with Bashew
+
+* [bumpkeys](https://github.com/pforret/bumpkeys): upgrade your SSH keys for better security
+* [crontask](https://github.com/pforret/crontask): call scripts or URLs from a crontab file, with optional logging and webhook upon success/failure
+* [jekyll_taxonomy](https://github.com/pforret/jekyll_taxonomy): Generate tag and category pages for Jekyll static sites
+* [m1_homebrew](https://github.com/pforret/m1_homebrew): Install homebrew in native mode on Apple MacOS ARM
+* [mkdox](https://github.com/pforret/mkdox): create and run Mkdocs Material websites using Docker image
+* [netcheck](https://github.com/pforret/netcheck): test network: interfaces, gateway, router, internet
+* [note](https://github.com/pforret/note): Manage your notes, todo, ... with this nifty script
+* [pa](https://github.com/pforret/pa): like "php artisan" but more intelligent (use optimal PHP version for the project
+* [progressbar](https://github.com/pforret/progressbar): Easy, clever progress bar for (bash) scripts
+* [rexec](https://github.com/pforret/rexec): repeat a command and be alerted when the output changes
+* [saild](https://github.com/pforret/saild): Start up your Laravel Sail dev setup in one go - Docker, Browser, Shell
+* [screenshots](https://github.com/pforret/screenshots): Let GitHub automatically make 📸 screenshots of all your websites
+* [setver](https://github.com/pforret/setver): Easy semver tool -- get/set git version (one-line superfast git commit)
+* [shaml](https://github.com/pforret/shaml): Read YAML files inside bash scripts
+* [shini](https://github.com/pforret/shini): Bash/shell .INI parser
+* [shlaunch](https://github.com/pforret/shlaunch): Launch desktop/GUI apps from CLI (e.g. Chrome, PHPStorm, Photoshop ...)
+* [shlorem](https://github.com/pforret/shlorem): Lorem Ipsum generator for the command line
+* [shmixcloud](https://github.com/pforret/shmixcloud): download Mixcloud shows and add album art to m4a files
+* [shoarma](https://github.com/pforret/shoarma): Static Image Site Generator - make e.g. Jekyll posts from folder of images
+* [shtext](https://github.com/pforret/shtext): Text manipulation in bash, by always using the fastest method
+* [shwiki](https://github.com/pforret/shwiki): Wikipedia CLI in bash
+* [shwordle](https://github.com/pforret/shwordle): Wordle-clone with variable # of letters and multiple languages
+* [splashmark](https://github.com/pforret/splashmark): download/create (unsplash/pixabay/replicate) pics and resize/add effects/add attribution/watermark
+* [teams-cli](https://github.com/cinemapub/teams-cli): Send messages to MS Teams channels from CLI
+* [xkcd](https://github.com/pforret/xkcd): View a XKCD comic in your console/TTY
+
+
 ## 🙏 Acknowledgements
 
 * [bash_unit](https://github.com/pgrange/bash_unit): bash unit testing enterprise edition framework (used for CI/CD)
