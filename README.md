@@ -169,7 +169,7 @@ $ basher install pforret/bashew
 * [screenshots](https://github.com/pforret/screenshots): Let GitHub automatically make 📸 screenshots of all your websites
 * [setver](https://github.com/pforret/setver): Easy semver tool -- get/set git version (one-line superfast git commit)
 * [shaml](https://github.com/pforret/shaml): Read YAML files inside bash scripts
-* [shini](https://github.com/pforret/shini): Bash/shell .INI parser
+* [shini](https://github.com/pforret/shini): Read INI files inside bash scripts
 * [shlaunch](https://github.com/pforret/shlaunch): Launch desktop/GUI apps from CLI (e.g. Chrome, PHPStorm, Photoshop ...)
 * [shlorem](https://github.com/pforret/shlorem): Lorem Ipsum generator for the command line
 * [shmixcloud](https://github.com/pforret/shmixcloud): download Mixcloud shows and add album art to m4a files
