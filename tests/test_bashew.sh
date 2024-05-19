@@ -17,6 +17,7 @@ template_script="$template_folder/script.sh"
 
 test_3_create_normal_script() {
   # script without parameters should give usage info
+  local temp_folder current_folder
   temp_folder="./test.$RANDOM"
   current_folder=$(pwd)
   mkdir "$temp_folder"
@@ -29,11 +30,11 @@ test_3_create_normal_script() {
 
 test_1_show_option_verbose() {
   # script without parameters should give usage info
-  assert_equals 1 "$("$template_script" 2>&1 | grep -c "verbose")"
+  assert_equals 1 "$("$template_script" 2>&1 | grep -c "VERBOSE")"
 }
 
 test_2_action_check_works() {
   # script without parameters should give usage info
-  assert_equals 1 "$("$template_script" check 2>&1 | grep -c "verbose=")"
-  assert_equals 1 "$("$template_script" check 2>&1 | grep -c "log_dir=")"
+  assert_equals 1 "$("$template_script" check 2>&1 | grep -c "VERBOSE=")"
+  assert_equals 1 "$("$template_script" check 2>&1 | grep -c "LOG_DIR=")"
 }
