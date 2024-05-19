@@ -11,7 +11,7 @@ jobs:
     if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Check for code quality errors
       run: ls ./*.sh | xargs shellcheck

@@ -11,7 +11,7 @@ jobs:
     if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]')"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: Check for basic execution
       run: ls ./*.sh | xargs bash
@@ -24,7 +24,7 @@ jobs:
     if: "! contains(toJSON(github.event.commits.*.message), '[skip ci]') && contains(toJSON(github.event.commits.*.message), '[macos]')"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
 
     - name: install MacOS dependencies with brew install
       run: brew install gawk
