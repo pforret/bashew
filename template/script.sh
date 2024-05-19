@@ -129,6 +129,7 @@ function do_action2() {
 #####################################################################
 
 action=""
+error_prefix=""
 git_repo_remote=""
 git_repo_root=""
 install_package=""
@@ -150,7 +151,6 @@ set -uo pipefail
 IFS=$'\n\t'
 FORCE=0
 help=0
-error_prefix=""
 
 #to enable VERBOSE even before option parsing
 VERBOSE=0
@@ -255,6 +255,7 @@ function IO:progress() {
 function IO:countdown() {
   local seconds=${1:-5}
   local message=${2:-Countdown :}
+  local i
 
   if ((piped)); then
     IO:print "$message $seconds seconds"
@@ -327,6 +328,7 @@ function Tool:throughput() {
   time_finished="$(Tool:time)"
   duration="$(Tool:calc "$time_finished - $time_started")"
   seconds="$(Tool:round "$duration")"
+  local ops
   if [[ "$operations" -gt 1 ]]; then
     if [[ $operations -gt $seconds ]]; then
       ops=$(Tool:calc "$operations / $duration")
@@ -453,6 +455,7 @@ trap "IO:die \"ERROR \$? after \$SECONDS seconds \n\
 # cf https://askubuntu.com/questions/513932/what-is-the-bash-command-variable-good-for
 
 Script:exit() {
+  local temp_file
   for temp_file in "${temp_files[@]-}"; do
     [[ -f "$temp_file" ]] && (
       IO:debug "Delete temp file [$temp_file]"
@@ -471,11 +474,12 @@ Script:check_version() {
     if [[ -d .git ]]; then
       local remote
       remote="$(git remote -v | grep fetch | awk 'NR == 1 {print $2}')"
-      IO:progress "Check for latest version - $remote"
+      IO:progress "Check for updates - $remote"
       git remote update &>/dev/null
       if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]]; then
         IO:print "There is a more recent update of this script - run <<$script_prefix update>> to update"
       fi
+      IO:progress "                                         "
     fi
     # shellcheck disable=SC2164
     popd &>/dev/null
@@ -517,7 +521,7 @@ Script:check() {
   if [[ -n $(Option:filter flag) ]]; then
     IO:print "## ${txtInfo}boolean flags${txtReset}:"
     Option:filter flag |
-    grep -v help |
+      grep -v help |
       while read -r name; do
         declare -p "$name" | cut -d' ' -f3-
       done
@@ -729,6 +733,7 @@ function Option:parse() {
 
     local choices_list
     local valid_choice
+    local param
     for param in $choices; do
       [[ $# -eq 0 ]] && IO:die "need choice [$param]"
       [[ -z "$1" ]] && IO:die "need choice [$param]"
@@ -1027,6 +1032,7 @@ function Os:import_env() {
     )
   fi
 
+  local env_file
   for env_file in "${env_files[@]}"; do
     if [[ -f "$env_file" ]]; then
       IO:debug "$config_icon Read  dotenv: [$env_file]"
