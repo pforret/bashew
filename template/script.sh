@@ -478,8 +478,9 @@ Script:check_version() {
       git remote update &>/dev/null
       if [[ $(git rev-list --count "HEAD...HEAD@{upstream}" 2>/dev/null) -gt 0 ]]; then
         IO:print "There is a more recent update of this script - run <<$script_prefix update>> to update"
+      else
+        IO:progress "                                         "
       fi
-      IO:progress "                                         "
     fi
     # shellcheck disable=SC2164
     popd &>/dev/null
