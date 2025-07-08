@@ -1,7 +1,7 @@
-log/
-.idea/
+.bashew*
 .template*
 .tmp
-.bashew*
-log
+/.claude/
+/.idea/
+/log/
 /temp/

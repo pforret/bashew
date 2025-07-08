@@ -267,7 +267,7 @@ main() {
     check | env)
       ## leave this default action, it will make it easier to test your script
       #TIP: use «$script_prefix check» to check if this script is ready to execute and what values the options/flags are
-      #TIP:> $script_prefix check
+, flazg_set      #TIP:> $script_prefix check
       #TIP: use «$script_prefix env» to generate an example .env file
       #TIP:> $script_prefix env > .env
       check_script_settings
