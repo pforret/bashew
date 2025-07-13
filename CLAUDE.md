@@ -28,7 +28,7 @@ Bashew is a bash script/project creator that generates robust bash scripts with 
 ### Core Components
 - `bashew.sh` - Main script that creates new scripts/projects
 - `template/script.sh` - Template for generated standalone scripts
-- `template/` - Contains all template files for project generation
+- `template/` - Contains all template files for bashew script/project generation
 - `tests/` - Unit tests using bash_unit framework
 
 ### Script Generation Process
