@@ -2,8 +2,55 @@
 ### ==============================================================================
 ### SO HOW DO YOU PROCEED WITH YOUR SCRIPT?
 ### 1. define the flags/options/parameters and defaults you need in Option:config()
-### 2. implement the different actions in Script:main() directly or with helper functions do_action1
+### 2. implement the different verbs in Script:main() directly or with helper functions do_action1
 ### 3. implement helper functions you defined in previous step
+### ==============================================================================
+###
+### FOR LLMs: QUICK REFERENCE
+### -------------------------
+### ADDING NEW VERBS: In Option:config(), add verb to the choice line (e.g., "action1,action2,newverb")
+###                   then add a case block in Script:main(): newverb) do_newverb ;;
+###
+### OPTIONS/FLAGS become variables:
+###   flag|f|FORCE|...        => $FORCE (0 or 1)
+###   option|o|output|...|x   => $output (default "x")
+###   param|1|input|...       => $input (required positional arg)
+###
+### ENV FILES: Automatically loaded in order (later files override earlier):
+###   1. <script_folder>/.env
+###   2. <script_folder>/.<script_prefix>.env
+###   3. <script_folder>/<script_prefix>.env
+###   4. ./.env (current dir, if different from script folder)
+###   5. ./.<script_prefix>.env
+###   6. ./<script_prefix>.env
+###
+### Os:require "binary" ["package"] - check if binary exists, die if not
+###   Os:require "awk"                      => check for awk, suggest: brew install awk
+###   Os:require "convert" "imagemagick"    => check for convert, suggest: brew install imagemagick
+###   Os:require "prog" "pip install prog"  => check for prog, suggest: pip install prog
+###   With -f/--FORCE flag: auto-installs missing binaries instead of dying
+###
+### IO FUNCTIONS and effect of --QUIET (-Q) and --VERBOSE (-V):
+###   IO:print "msg"   : normal output (stdout)     - hidden by -Q
+###   IO:debug "msg"   : debug info (stderr)        - only shown with -V
+###   IO:success "msg" : success message (stdout)   - hidden by -Q
+###   IO:announce "msg": announcement + 1s pause    - hidden by -Q
+###   IO:alert "msg"   : warning message (stderr)   - always shown
+###   IO:die "msg"     : error message + exit       - always shown
+###   IO:progress "msg": overwriting progress line  - hidden by -Q
+###   IO:log "msg"     : append to $log_file        - not affected by -Q/-V
+###   IO:confirm "?"   : ask y/N question           - skipped (=yes) with -f/--FORCE
+###
+### STRING FUNCTIONS:
+###   Str:trim "  text  "                => "text" (remove leading/trailing whitespace)
+###   Str:lower "HELLO"                  => "hello"
+###   Str:upper "hello"                  => "HELLO"
+###   Str:ascii "café"                   => "cafe" (remove diacritics)
+###   Str:slugify "Hello World!"         => "hello-world" (URL-safe)
+###   Str:slugify "Hello World!" "_"     => "hello_world" (custom separator)
+###   Str:title "hello world"            => "HelloWorld"
+###   Str:title "hello world" "_"        => "Hello_World"
+###   Str:digest 8 <<< "text"            => "d3b07384" (MD5 hash, first N chars)
 ### ==============================================================================
 
 ### Created by author_name ( author_username ) on meta_today
@@ -15,28 +62,21 @@ readonly run_as_root=-1 # run_as_root: 0 = don't check anything / 1 = script MUS
 readonly script_description="package_description"
 
 function Option:config() {
-  ### Change the next lines to reflect which flags/options/parameters you need
-  ### flag:   switch a flag 'on' / no value specified
-  ###     flag|<short>|<long>|<description>
-  ###     e.g. "-v" or "--VERBOSE" for VERBOSE output / default is always 'off'
-  ###     will be available as $<long> in the script e.g. $VERBOSE
-  ### option: set an option / 1 value specified
-  ###     option|<short>|<long>|<description>|<default>
-  ###     e.g. "-e <extension>" or "--extension <extension>" for a file extension
-  ###     will be available a $<long> in the script e.g. $extension
-  ### list: add an list/array item / 1 value specified
-  ###     list|<short>|<long>|<description>| (default is ignored)
-  ###     e.g. "-u <user1> -u <user2>" or "--user <user1> --user <user2>"
-  ###     will be available a $<long> array in the script e.g. ${user[@]}
-  ### param:  comes after the options
-  ###     param|<type>|<long>|<description>
-  ###     <type> = 1 for single parameters - e.g. param|1|output expects 1 parameter <output>
-  ###     <type> = ? for optional parameters - e.g. param|1|output expects 1 parameter <output>
-  ###     <type> = n for list parameter    - e.g. param|n|inputs expects <input1> <input2> ... <input99>
-  ###     will be available as $<long> in the script after option/param parsing
-  ### choice:  is like a param, but when there are limited options
-  ###     choice|<type>|<long>|<description>|choice1,choice2,...
-  ###     <type> = 1 for single parameters - e.g. param|1|output expects 1 parameter <output>
+  ### SYNTAX: type|short|long|description[|default][|choices]
+  ###
+  ### flag   => -x or --xxxx sets $xxxx=1 (default: 0)
+  ### option => -x <val> or --xxxx <val> sets $xxxx=val
+  ### list   => -x <v1> -x <v2> sets ${xxxx[@]} array
+  ### param  => positional arg: 1=required, ?=optional, n=multiple
+  ### choice => positional arg with validation against allowed values
+  ###
+  ### Examples:
+  ###   flag|v|VERBOSE|show debug info          => $VERBOSE (0/1)
+  ###   option|o|output|output file|out.txt     => $output (default: out.txt)
+  ###   list|t|tag|add tags                     => ${tag[@]}
+  ###   param|1|input|input file                => $input (required)
+  ###   param|?|extra|optional arg              => $extra (optional)
+  ###   choice|1|action|verb|run,test,build     => $action (validated)
   grep <<<"
 #commented lines will be filtered
 flag|h|help|show usage
@@ -45,7 +85,6 @@ flag|V|VERBOSE|also show debug messages
 flag|f|FORCE|do not ask for confirmation (always yes)
 option|L|LOG_DIR|folder for log files |$HOME/log/$script_prefix
 option|T|TMP_DIR|folder for temp files|/tmp/$script_prefix
-#option|W|WIDTH|width of the picture|800
 choice|1|action|action to perform|action1,action2,check,env,update
 param|?|input|input file/text
 " -v -e '^#' -e '^\s*$'
@@ -56,11 +95,14 @@ param|?|input|input file/text
 #####################################################################
 
 function Script:main() {
+  ## TO ADD A NEW VERB: 1) add it to choice line in Option:config()
+  ##                    2) add a case block below: myverb) do_myverb ;;
+  ##                    3) implement do_myverb() function
   IO:log "[$script_basename] $script_version started"
 
   Os:require "awk"
 
-  case "${action,,}" in
+  case "${action,,}" in # ${action,,} = lowercase $action
   action1)
     #TIP: use «$script_prefix action1» to ...
     #TIP:> $script_prefix action1
@@ -107,14 +149,17 @@ function Script:main() {
 
 #####################################################################
 ## Put your helper scripts here
+## Available variables: all flags/options from Option:config()
+## Useful functions: IO:print, IO:debug, IO:die, IO:success, IO:confirm
+##                   Os:require "binary" [install_cmd], Os:tempfile [ext]
 #####################################################################
 
 function do_action1() {
   IO:log "action1"
-  # Examples of required binaries/scripts and how to install them
-  # Os:require "ffmpeg"
-  # Os:require "convert" "imagemagick"
-  # Os:require "IO:progressbar" "basher install pforret/IO:progressbar"
+  # Os:require examples: (1 arg = binary name, 2 args = binary + package/command)
+  # Os:require "ffmpeg"                                  # => brew install ffmpeg
+  # Os:require "convert" "imagemagick"                   # => brew install imagemagick
+  # Os:require "progressbar" "basher install pforret/progressbar"
   # (code)
 }
 
@@ -1078,7 +1123,7 @@ Script:meta   # find installation folder
 [[ $run_as_root == -1 ]] && [[ $UID -eq 0 ]] && IO:die "user is $USER, CANNOT be root to run [$script_basename]"
 
 Option:initialize # set default values for flags & options
-Os:import_env     # overwrite with .env if any
+Os:import_env     # load .env, .<prefix>.env, <prefix>.env (script folder + cwd)
 
 if [[ $sourced -eq 0 ]]; then
   Option:parse "$@" # overwrite with specified options if any
