@@ -11,6 +11,11 @@
 ### ADDING NEW VERBS: In Option:config(), add verb to the choice line (e.g., "action1,action2,newverb")
 ###                   then add a case block in Script:main(): newverb) do_newverb ;;
 ###
+### BUILT-IN VERBS: check   => show all options/flags/parameters and required programs
+###                 env     => generate an example .env file
+###                 install => install required programs, symlink the script, set up bash/zsh completion
+###                 update  => update the script to the latest version (git pull)
+###
 ### OPTIONS/FLAGS become variables:
 ###   flag|f|FORCE|...        => $FORCE (0 or 1)
 ###   option|o|output|...|x   => $output (default "x")
@@ -85,7 +90,7 @@ flag|V|VERBOSE|also show debug messages
 flag|f|FORCE|do not ask for confirmation (always yes)
 option|L|LOG_DIR|folder for log files |$HOME/log/$script_prefix
 option|T|TMP_DIR|folder for temp files|/tmp/$script_prefix
-choice|1|action|action to perform|action1,action2,check,env,update
+choice|1|action|action to perform|action1,action2,check,env,install,update
 param|?|input|input file/text
 " -v -e '^#' -e '^\s*$'
 }
@@ -136,6 +141,13 @@ function Script:main() {
     #TIP: use «$script_prefix update» to update to the latest version
     #TIP:> $script_prefix update
     Script:git_pull
+    ;;
+
+  install)
+    ## leave this default action, it will make it easier to install your script
+    #TIP: use «$script_prefix install» to install dependencies and set up bash completion
+    #TIP:> $script_prefix install
+    Script:install
     ;;
 
   *)
@@ -540,6 +552,159 @@ Script:git_pull() {
   ) &
 }
 
+Script:install() {
+  # install everything this script needs to run: required binaries, a symlink in the PATH
+  # and bash/zsh completion - all steps are optional and can be skipped
+  IO:announce "Install [$script_prefix] on this machine"
+  Script:install_requirements
+  Script:install_symlink
+  Script:install_completion
+  IO:success "[$script_prefix] is ready to use"
+}
+
+Script:install_requirements() {
+  # check all binaries this script needs (from the Os:require calls) and install the missing ones
+  local requirements=()
+  local requirement binary hint instructions words
+  IO:print "${txtInfo}1. requirements${txtReset}"
+  mapfile -t requirements < <(Script:list_requirements)
+  if [[ ${#requirements[@]} -eq 0 ]]; then
+    IO:print "   no external programs required"
+    return 0
+  fi
+  for requirement in "${requirements[@]-}"; do
+    [[ -z "$requirement" ]] && continue
+    binary="${requirement%%$'\t'*}"
+    hint="${requirement#*$'\t'}"
+    if command -v "$binary" &>/dev/null; then
+      IO:success "   [$binary] is installed"
+      continue
+    fi
+    words=$(echo "$hint" | wc -w)
+    instructions="$install_package $binary"
+    [[ $words -eq 1 ]] && instructions="$install_package $hint"
+    [[ $words -gt 1 ]] && instructions="$hint"
+    instructions="$(Str:trim "$instructions")"
+    if [[ -z "$instructions" ]]; then
+      IO:alert "   [$binary] is missing - no idea how to install it on $os_name"
+      continue
+    fi
+    if IO:confirm "   [$binary] is missing - install it with <<$instructions>>?"; then
+      eval "$instructions"
+    else
+      IO:alert "   [$binary] is missing - install it later with: $instructions"
+    fi
+  done
+}
+
+Script:list_requirements() {
+  # list every binary this script needs, as <binary><tab><install hint>
+  # only real calls are used, not the ones in comments or in the documentation
+  grep -E '^[[:space:]]*Os:require[[:space:]]+"' "$script_install_path" |
+    awk '
+    BEGIN { FS="\"" }
+    NF >= 3 { print $2 "\t" (NF >= 5 ? $4 : "") }
+    ' |
+    sort -u
+}
+
+Script:install_symlink() {
+  # make this script callable as [$script_prefix] from anywhere
+  local folder link_path link_target script_target
+  local bin_folder=""
+  script_target="$script_install_folder/$(basename "$script_install_path")" # always use the absolute path for the symlink
+  IO:print "${txtInfo}2. symlink${txtReset}"
+  if [[ "$script_target" == *"/.basher/"* ]] || [[ -n "${BASHER_ROOT:-}" && "$script_target" == "${BASHER_ROOT:-}/"* ]]; then
+    IO:print "   skipped: [$script_prefix] was installed with basher, which takes care of this"
+    return 0
+  fi
+  for folder in "$HOME/.local/bin" "$HOME/bin" "/usr/local/bin"; do
+    [[ -d "$folder" ]] && [[ -w "$folder" ]] && bin_folder="$folder" && break
+  done
+  if [[ -z "$bin_folder" ]]; then
+    if IO:confirm "   no writable folder found - create [$HOME/.local/bin]?"; then
+      mkdir -p "$HOME/.local/bin"
+      bin_folder="$HOME/.local/bin"
+    else
+      IO:alert "   skipped: no writable folder found ($HOME/.local/bin, $HOME/bin, /usr/local/bin)"
+      return 0
+    fi
+  fi
+  [[ ":$PATH:" == *":$bin_folder:"* ]] || IO:alert "   [$bin_folder] is not in your PATH - add: export PATH=\"$bin_folder:\$PATH\""
+  link_path="$bin_folder/$script_prefix"
+  if [[ -e "$link_path" ]]; then
+    link_target="$(Os:follow_link "$link_path")"
+    if [[ "$link_target" == "$script_target" ]]; then
+      IO:success "   [$link_path] already points to this script"
+    else
+      IO:alert "   skipped: [$link_path] already exists and points to [$link_target]"
+    fi
+    return 0
+  fi
+  if IO:confirm "   create symlink [$link_path]?"; then
+    ln -s "$script_target" "$link_path"
+    IO:success "   $link_path -> $script_target"
+  fi
+}
+
+Script:install_completion() {
+  # generate the completion script and activate it in the bash/zsh startup files
+  local completion_folder="$HOME/.bash_completion.d"
+  local completion_file="$completion_folder/$script_prefix"
+  IO:print "${txtInfo}3. completion${txtReset}"
+  Os:folder "$completion_folder" 3650
+  Script:completion >"$completion_file"
+  IO:success "   $completion_file"
+  Script:install_startup "$HOME/.bashrc" "source \"$completion_file\""
+  Script:install_startup "$HOME/.zshrc" "autoload -U +X bashcompinit && bashcompinit && source \"$completion_file\""
+}
+
+Script:install_startup() {
+  # add a line to a shell startup file, but only once
+  local startup_file="$1"
+  local startup_line="$2"
+  if [[ ! -f "$startup_file" ]]; then
+    IO:debug "$config_icon skip [$startup_file]: does not exist"
+    return 0
+  fi
+  if grep -q -F "$startup_line" "$startup_file"; then
+    IO:success "   already activated in [$startup_file]"
+    return 0
+  fi
+  if IO:confirm "   activate completion in [$startup_file]?"; then
+    {
+      echo ""
+      echo "# added by [$script_basename install] on $execution_day"
+      echo "$startup_line"
+    } >>"$startup_file"
+    IO:success "   activated in [$startup_file] - restart your shell to use it"
+  fi
+}
+
+Script:completion() {
+  # generate a bash/zsh completion script, based on the flags/options/choices in Option:config
+  local keywords
+  keywords="$(Option:config |
+    awk '
+    BEGIN { FS="|" }
+    $1 ~ /flag|option|list|secret/ { print "-" $2 ; print "--" $3 }
+    $1 ~ /choice/ { n = split($5, values, ","); for (i = 1; i <= n; i++) print values[i] }
+    ' |
+    sort -u |
+    tr '\n' ' ')"
+  keywords="$(Str:trim "$keywords")"
+  cat <<END_OF_COMPLETION
+# bash/zsh completion for [$script_basename] - generated by [$script_basename install]
+_${script_prefix}_completion() {
+  local current
+  current="\${COMP_WORDS[COMP_CWORD]}"
+  # shellcheck disable=SC2207
+  COMPREPLY=(\$(compgen -W "$keywords" -- "\$current"))
+}
+complete -F _${script_prefix}_completion $script_prefix
+END_OF_COMPLETION
+}
+
 Script:show_tips() {
   ((sourced)) && return 0
   # shellcheck disable=SC2016
@@ -868,6 +1033,8 @@ function Os:require() {
   binary="$1"
   path_binary=$(command -v "$binary" 2>/dev/null)
   [[ -n "$path_binary" ]] && IO:debug "️$require_icon required [$binary] -> $path_binary" && return 0
+  # during the [install] action, Script:install takes care of the missing binaries, so don't die here
+  [[ "${action,,}" == "install" ]] && IO:debug "$require_icon missing [$binary] - will be installed by [install]" && return 0
   # $2 = how to install it
   IO:alert "$script_basename needs [$binary] but it cannot be found"
   words=$(echo "${2:-}" | wc -w)
