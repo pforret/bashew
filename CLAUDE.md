@@ -53,6 +53,15 @@ Generated scripts follow this pattern:
 - Helper functions at the top
 - Full bashew library embedded at the bottom
 
+### Built-in Actions
+Every generated script comes with these actions (in the `choice|1|action` line of `Option:config()`):
+- `check` - show all flags/options/parameters and the programs the script requires (`Script:check`)
+- `env` - generate an example `.env` file with the current option defaults
+- `install` - install the required programs (from the `Os:require` calls), symlink the script into a
+  folder in the `$PATH` (skipped when it was installed with basher) and set up bash/zsh completion,
+  generated from `Option:config()` (`Script:install`)
+- `update` - update the script to the latest version with `git pull` (`Script:git_pull`)
+
 ## Testing Requirements
 
 Tests use bash_unit framework. Install with:
