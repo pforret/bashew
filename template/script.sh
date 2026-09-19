@@ -404,6 +404,133 @@ function Tool:throughput() {
   fi
 }
 
+function Tool:pick() {
+  # pick one option from a list, interactively
+  # usage: <<< "option1\noption2" Tool:pick [prompt] [other] [default] [timeout]
+  #   input  : options as lines on stdin
+  #   output : the chosen option on stdout (empty + return 1 when cancelled or no options)
+  #   prompt : text shown with the list (default: "Pick one:")
+  #   other  : when non-empty, an extra option with this label is added ("1" = "other: ...")
+  #            choosing it lets the user type their own answer, which is returned instead
+  #   default: returned when no choice can be made: on timeout, when FORCE is set,
+  #            or when there is no terminal to ask on (cron, CI, ...); defaults to the first option
+  #   timeout: seconds to wait for a choice before returning the default (0 = wait forever)
+  # uses fzf if available, otherwise gum, otherwise a bash-only numbered menu
+  local prompt="${1:-Pick one:}"
+  local other_option="${2:-}"
+  local default="${3:-}"
+  local timeout="${4:-0}"
+  [[ "$other_option" == "1" ]] && other_option="other: ..."
+
+  local -a options=()
+  local line
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && options+=("$line")
+  done
+  ((${#options[@]} == 0)) && return 1
+  [[ -z "$default" ]] && default="${options[0]}"
+  [[ -n "$other_option" ]] && options+=("$other_option")
+
+  # non-interactive: forced, or no terminal to ask on -> use the default
+  if ((FORCE)) || ! Os:has_tty; then
+    echo "$default"
+    return 0
+  fi
+
+  local hint=""
+  ((timeout > 0)) && hint=" (default '$default' after ${timeout}s)"
+  local -a read_timeout=()
+  ((timeout > 0)) && read_timeout=(-t "$timeout")
+
+  local choice="" timed_out=0
+  if [[ $(command -v fzf) ]]; then
+    choice=$(printf '%s\n' "${options[@]}" | Tool:_pick_timeout "$timeout" fzf --height="~40%" --layout=reverse --header="$prompt$hint")
+    [[ "$choice" == $'\a' ]] && timed_out=1
+  elif [[ $(command -v gum) ]]; then
+    choice=$(Tool:_pick_timeout "$timeout" gum choose --header="$prompt$hint" "${options[@]}")
+    [[ "$choice" == $'\a' ]] && timed_out=1
+  else
+    # bash-only numbered menu (like 'select', but with timeout support)
+    # stdin was used for the options, so read the answer from the terminal
+    local reply i status
+    for i in "${!options[@]}"; do
+      printf '%2d) %s\n' "$((i + 1))" "${options[$i]}" >&2
+    done
+    while true; do
+      IFS= read -r ${read_timeout[@]+"${read_timeout[@]}"} -p "$prompt$hint " reply </dev/tty
+      status=$?
+      ((status > 128)) && timed_out=1 && echo >&2 && break # timeout
+      ((status > 0)) && break                             # ctrl-d / no input
+      if [[ "$reply" =~ ^[0-9]+$ ]] && ((reply >= 1 && reply <= ${#options[@]})); then
+        choice="${options[reply - 1]}"
+        break
+      fi
+    done
+  fi
+  if ((timed_out)); then
+    echo "$default"
+    return 0
+  fi
+  if [[ -n "$other_option" && "$choice" == "$other_option" ]]; then
+    # let the user type their own answer
+    choice=""
+    IFS= read -r ${read_timeout[@]+"${read_timeout[@]}"} -p "$prompt$hint " choice </dev/tty
+    if (($? > 128)); then # timeout
+      echo >&2
+      echo "$default"
+      return 0
+    fi
+    choice="$(Str:trim "$choice")"
+  fi
+  [[ -z "$choice" ]] && return 1
+  echo "$choice"
+}
+
+function Tool:_pick_timeout() {
+  # run an interactive picker (fzf/gum) with a timeout, used by Tool:pick
+  # usage: Tool:_pick_timeout <seconds> <command> [args...]
+  # after <seconds> the picker is terminated and a BEL character is output instead
+  # <seconds> = 0: no timeout
+  local seconds="$1"
+  shift
+  if ((seconds <= 0)); then
+    "$@"
+    return $?
+  fi
+  local marker
+  marker="$(mktemp)"
+  rm -f "$marker"
+  "$@" <&0 & # keep stdin (the options), a background command would get /dev/null otherwise
+  local pid=$!
+  # watchdog: without stdout/stderr, so it does not keep the caller's pipe open after the pick
+  (
+    sleep "$seconds" || exit 0 # killed before the timeout: do nothing
+    touch "$marker"
+    kill "$pid" 2>/dev/null
+  ) >/dev/null 2>&1 &
+  local watchdog=$!
+  wait "$pid"
+  local status=$?
+  local timed_out=0
+  [[ -f "$marker" ]] && timed_out=1
+  # stop the watchdog (its sleep first, so the watchdog exits without firing)
+  [[ $(command -v pkill) ]] && pkill -P "$watchdog" 2>/dev/null
+  kill "$watchdog" 2>/dev/null
+  wait "$watchdog" 2>/dev/null
+  rm -f "$marker"
+  if ((timed_out)); then
+    stty sane 2>/dev/null </dev/tty # in case the picker did not restore the terminal
+    printf '\a'
+    return 0
+  fi
+  return $status
+}
+
+function Os:has_tty() {
+  # true when there is a terminal to interact with (false in cron, CI, pipes without a tty)
+  ( : </dev/tty ) 2>/dev/null
+}
+
 ### string processing
 
 function Str:trim() {
