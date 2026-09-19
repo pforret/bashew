@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - put requirements/dependencies in separate file
-- ADD: `Tool:pick` - pick one option from a list (lines on stdin) with fzf, gum or bash `select`
+- ADD: `Tool:pick` - pick one option from a list (lines on stdin) with fzf, gum or bash `select`, optionally with an "other: ..." free-text answer
 
 ## [1.20.2] - 2023-04-22
 ### Added/changed

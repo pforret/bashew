@@ -311,6 +311,7 @@ Tool:round 3.14159 2                 # → "3.14"
 Tool:time                            # current time as float (seconds.microseconds)
 Tool:throughput $start_time 100 "files"  # "100 files finished in 3.2 secs"
 Tool:pick "Choose:" <<< $'red\ngreen\nblue'  # interactive picker (fzf/gum/select), chosen line → stdout
+Tool:pick "Choose:" 1 <<< $'red\ngreen\nblue'  # same, with an extra "other: ..." option to type a free answer
 ```
 
 ### Script: Functions (Lifecycle)

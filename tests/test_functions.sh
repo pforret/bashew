@@ -82,3 +82,16 @@ test_pick_with_gum() {
   # shellcheck disable=SC2123 # emptying PATH (in a subshell) is intentional
   assert_equals "blue" "$(PATH=""; Tool:pick <<< $'red\ngreen\nblue')"
 }
+
+test_pick_with_other_option() {
+  # without the 2nd parameter, no "other: ..." option is added; with it, it is added at the end
+  local received
+  received="$(mktemp)"
+  # shellcheck disable=SC2016 # the fake code must be expanded when fzf is called, not now
+  fake fzf 'tee "$received" | head -1'
+  assert_equals "red" "$(Tool:pick "Color?" <<< $'red\ngreen\nblue')"
+  assert_equals "blue" "$(tail -1 "$received")"
+  assert_equals "red" "$(Tool:pick "Color?" 1 <<< $'red\ngreen\nblue')"
+  assert_equals "other: ..." "$(tail -1 "$received")"
+  assert_equals 4 "$(wc -l < "$received" | tr -d ' ')"
+}

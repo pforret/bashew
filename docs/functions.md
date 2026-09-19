@@ -177,8 +177,11 @@ Tool:time
 <<< $'red\ngreen\nblue' Tool:pick "Pick a color:"
 < "options.txt" Tool:pick
 color=$(ls *.jpg | Tool:pick "Which image?") || echo "nothing chosen"
+<<< $'red\ngreen\nblue' Tool:pick "Pick a color:" 1
 # pick one option from a list: options are read as lines from stdin, the chosen one is written to stdout
 # uses fzf if installed, otherwise gum, otherwise bash's builtin 'select'
+# with a non-empty 2nd parameter, an extra "other: ..." option is added:
+# choosing it lets the user type their own answer, which is returned instead
 # returns 1 (with empty output) when there are no options or the user cancels
 ```
 

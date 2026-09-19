@@ -406,17 +406,22 @@ function Tool:throughput() {
 
 function Tool:pick() {
   # pick one option from a list, interactively
-  # usage: <<< "option1\noption2" Tool:pick [prompt]
+  # usage: <<< "option1\noption2" Tool:pick [prompt] [allow_other]
   # input : options as lines on stdin
   # output: the chosen option on stdout (empty + return 1 when cancelled or no options)
   # uses fzf if available, otherwise gum, otherwise bash's builtin 'select'
+  # when allow_other is non-empty (e.g. 1), an extra "other: ..." option is added
+  # and choosing it lets the user type their own answer, which is returned instead
   local prompt="${1:-Pick one:}"
+  local allow_other="${2:-}"
+  local other_option="other: ..."
   local -a options=()
   local line
   while IFS= read -r line; do
     [[ -n "$line" ]] && options+=("$line")
   done
   ((${#options[@]} == 0)) && return 1
+  [[ -n "$allow_other" ]] && options+=("$other_option")
   local choice
   if [[ $(command -v fzf) ]]; then
     choice=$(printf '%s\n' "${options[@]}" | fzf --height="~40%" --layout=reverse --header="$prompt")
@@ -428,6 +433,12 @@ function Tool:pick() {
     select choice in "${options[@]}"; do
       [[ -n "$choice" ]] && break
     done </dev/tty
+  fi
+  if [[ -n "$allow_other" && "$choice" == "$other_option" ]]; then
+    # let the user type their own answer (from the terminal, stdin held the options)
+    choice=""
+    IFS= read -r -p "$prompt " choice </dev/tty
+    choice="$(Str:trim "$choice")"
   fi
   [[ -z "$choice" ]] && return 1
   echo "$choice"
