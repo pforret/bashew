@@ -177,11 +177,22 @@ Tool:time
 <<< $'red\ngreen\nblue' Tool:pick "Pick a color:"
 < "options.txt" Tool:pick
 color=$(ls *.jpg | Tool:pick "Which image?") || echo "nothing chosen"
-<<< $'red\ngreen\nblue' Tool:pick "Pick a color:" 1
+Tool:pick "Pick a color:" 1 <<< $'red\ngreen\nblue'                # adds "other: ..." to type a free answer
+Tool:pick "Pick a color:" "something else..." <<< $'red\ngreen\nblue' # same, with a custom label
+Tool:pick "Pick a color:" "" "green" 30 <<< $'red\ngreen\nblue'      # 'green' when no answer within 30 sec
 # pick one option from a list: options are read as lines from stdin, the chosen one is written to stdout
-# uses fzf if installed, otherwise gum, otherwise bash's builtin 'select'
-# with a non-empty 2nd parameter, an extra "other: ..." option is added:
-# choosing it lets the user type their own answer, which is returned instead
+# uses fzf if installed, otherwise gum, otherwise a bash-only numbered menu
+# parameters: [prompt] [other] [default] [timeout]
+#   other  : when non-empty, an extra option with this label is added ("1" = "other: ...");
+#            choosing it lets the user type their own answer, which is returned instead
+#   default: returned when no choice can be made: on timeout, with -f/--FORCE,
+#            or when there is no terminal (cron, CI, ...); defaults to the first option
+#   timeout: seconds to wait for a choice before returning the default (0 = wait forever)
 # returns 1 (with empty output) when there are no options or the user cancels
 ```
 
+### Os:has_tty()
+```shell
+Os:has_tty && IO:confirm "Continue?"
+# true when there is a terminal to interact with (false in cron, CI, ...)
+```

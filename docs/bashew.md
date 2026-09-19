@@ -312,6 +312,7 @@ Tool:time                            # current time as float (seconds.microsecon
 Tool:throughput $start_time 100 "files"  # "100 files finished in 3.2 secs"
 Tool:pick "Choose:" <<< $'red\ngreen\nblue'  # interactive picker (fzf/gum/select), chosen line → stdout
 Tool:pick "Choose:" 1 <<< $'red\ngreen\nblue'  # same, with an extra "other: ..." option to type a free answer
+Tool:pick "Choose:" "" "red" 30 <<< $'red\ngreen\nblue'  # "red" after 30 sec without answer, or with -f, or without terminal
 ```
 
 ### Script: Functions (Lifecycle)

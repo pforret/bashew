@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 - put requirements/dependencies in separate file
-- ADD: `Tool:pick` - pick one option from a list (lines on stdin) with fzf, gum or bash `select`, optionally with an "other: ..." free-text answer
+- ADD: `Tool:pick` - pick one option from a list (lines on stdin) with fzf, gum or a bash menu, with optional "other: ..." free-text answer, default (used with -f or without terminal) and timeout
+- ADD: `Os:has_tty` - check if there is a terminal to interact with
 
 ## [1.20.2] - 2023-04-22
 ### Added/changed

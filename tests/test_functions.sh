@@ -62,7 +62,19 @@ test_pick_empty_input_fails() {
   assert_equals "" "$(Tool:pick <<< '' || true)"
 }
 
+test_pick_non_interactive_returns_default() {
+  # no terminal (bash_unit/CI) -> the default is returned without asking
+  fake Os:has_tty false
+  fake fzf 'echo should-not-be-called'
+  assert_equals "red" "$(Tool:pick "Color?" <<< $'red\ngreen\nblue')"
+  assert_equals "blue" "$(Tool:pick "Color?" "" "blue" <<< $'red\ngreen\nblue')"
+  # FORCE flag (-f) -> same, even with a terminal
+  fake Os:has_tty true
+  assert_equals "green" "$(FORCE=1 Tool:pick "Color?" 1 "green" <<< $'red\ngreen\nblue')"
+}
+
 test_pick_with_fzf() {
+  fake Os:has_tty true
   # fzf gets the options on stdin, we fake it to pick the 2nd line
   fake fzf 'sed -n 2p'
   assert_equals "green" "$(Tool:pick "Color?" <<< $'red\ngreen\nblue')"
@@ -70,11 +82,13 @@ test_pick_with_fzf() {
 }
 
 test_pick_with_fzf_cancelled() {
+  fake Os:has_tty true
   fake fzf true
   assert_fails "Tool:pick <<< $'red\ngreen'"
 }
 
 test_pick_with_gum() {
+  fake Os:has_tty true
   # gum gets the options as arguments (after --header=...), we fake it to pick the last one
   # PATH is emptied so a real fzf binary is not found and the gum branch is used
   # shellcheck disable=SC2016 # the fake code must be expanded when gum is called, not now
@@ -84,7 +98,8 @@ test_pick_with_gum() {
 }
 
 test_pick_with_other_option() {
-  # without the 2nd parameter, no "other: ..." option is added; with it, it is added at the end
+  fake Os:has_tty true
+  # without the 2nd parameter, no "other" option is added; with it, it is added at the end
   local received
   received="$(mktemp)"
   # shellcheck disable=SC2016 # the fake code must be expanded when fzf is called, not now
@@ -94,4 +109,19 @@ test_pick_with_other_option() {
   assert_equals "red" "$(Tool:pick "Color?" 1 <<< $'red\ngreen\nblue')"
   assert_equals "other: ..." "$(tail -1 "$received")"
   assert_equals 4 "$(wc -l < "$received" | tr -d ' ')"
+  assert_equals "red" "$(Tool:pick "Color?" "something else..." <<< $'red\ngreen\nblue')"
+  assert_equals "something else..." "$(tail -1 "$received")"
+}
+
+test_pick_with_timeout() {
+  fake Os:has_tty true
+  # a picker that never answers -> after the timeout the default (first option) is returned
+  fake fzf 'exec sleep 10'
+  local started=$SECONDS
+  assert_equals "red" "$(Tool:pick "Color?" "" "" 1 <<< $'red\ngreen\nblue')"
+  assert_equals "blue" "$(Tool:pick "Color?" 1 "blue" 1 <<< $'red\ngreen\nblue')"
+  assert "test $((SECONDS - started)) -lt 8" "the timeout should have interrupted the picker"
+  # a quick answer is not affected by the timeout
+  fake fzf 'sed -n 2p'
+  assert_equals "green" "$(Tool:pick "Color?" "" "" 30 <<< $'red\ngreen\nblue')"
 }
