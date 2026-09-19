@@ -56,3 +56,29 @@ test_slugify() {
   assert_equals "but-is-it-jack-or-jill" "$(Str:slugify "but... is it Jack, or Jill???")"
   assert_equals "internationalisation" "$(Str:slugify "ïñtèrnätìønālíśâtïön")"
 }
+
+test_pick_empty_input_fails() {
+  assert_fails "Tool:pick <<< ''"
+  assert_equals "" "$(Tool:pick <<< '' || true)"
+}
+
+test_pick_with_fzf() {
+  # fzf gets the options on stdin, we fake it to pick the 2nd line
+  fake fzf 'sed -n 2p'
+  assert_equals "green" "$(Tool:pick "Color?" <<< $'red\ngreen\nblue')"
+  assert_equals "green" "$(printf 'red\ngreen\nblue\n' | Tool:pick)"
+}
+
+test_pick_with_fzf_cancelled() {
+  fake fzf true
+  assert_fails "Tool:pick <<< $'red\ngreen'"
+}
+
+test_pick_with_gum() {
+  # gum gets the options as arguments (after --header=...), we fake it to pick the last one
+  # PATH is emptied so a real fzf binary is not found and the gum branch is used
+  # shellcheck disable=SC2016 # the fake code must be expanded when gum is called, not now
+  fake gum 'echo "${FAKE_PARAMS[-1]}"'
+  # shellcheck disable=SC2123 # emptying PATH (in a subshell) is intentional
+  assert_equals "blue" "$(PATH=""; Tool:pick <<< $'red\ngreen\nblue')"
+}

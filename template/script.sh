@@ -404,6 +404,35 @@ function Tool:throughput() {
   fi
 }
 
+function Tool:pick() {
+  # pick one option from a list, interactively
+  # usage: <<< "option1\noption2" Tool:pick [prompt]
+  # input : options as lines on stdin
+  # output: the chosen option on stdout (empty + return 1 when cancelled or no options)
+  # uses fzf if available, otherwise gum, otherwise bash's builtin 'select'
+  local prompt="${1:-Pick one:}"
+  local -a options=()
+  local line
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && options+=("$line")
+  done
+  ((${#options[@]} == 0)) && return 1
+  local choice
+  if [[ $(command -v fzf) ]]; then
+    choice=$(printf '%s\n' "${options[@]}" | fzf --height="~40%" --layout=reverse --header="$prompt")
+  elif [[ $(command -v gum) ]]; then
+    choice=$(gum choose --header="$prompt" "${options[@]}")
+  else
+    local PS3="$prompt "
+    # stdin was used for the options, so let 'select' read from the terminal
+    select choice in "${options[@]}"; do
+      [[ -n "$choice" ]] && break
+    done </dev/tty
+  fi
+  [[ -z "$choice" ]] && return 1
+  echo "$choice"
+}
+
 ### string processing
 
 function Str:trim() {

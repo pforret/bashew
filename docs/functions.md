@@ -172,3 +172,13 @@ Tool:time
 # return time as # seconds since 1 jan 1970 with microseconds (e.g.: 1651391010.385)
 ```
 
+### Tool:pick()
+```shell
+<<< $'red\ngreen\nblue' Tool:pick "Pick a color:"
+< "options.txt" Tool:pick
+color=$(ls *.jpg | Tool:pick "Which image?") || echo "nothing chosen"
+# pick one option from a list: options are read as lines from stdin, the chosen one is written to stdout
+# uses fzf if installed, otherwise gum, otherwise bash's builtin 'select'
+# returns 1 (with empty output) when there are no options or the user cancels
+```
+
